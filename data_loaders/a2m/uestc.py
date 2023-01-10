@@ -51,7 +51,7 @@ def get_trans_from_vibe(vibe, index, use_z=True):
 class UESTC(Dataset):
     dataname = "uestc"
 
-    def __init__(self, datapath="dataset/uestc", method_name="vibe", view="all", **kargs):
+    def __init__(self, datapath="/media/hdd/guide/motion-diffusion-model/dataset/uestc", method_name="vibe", view="all", **kargs):
 
         self.datapath = datapath
         self.method_name = method_name
