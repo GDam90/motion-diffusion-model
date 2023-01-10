@@ -71,7 +71,7 @@ pip install git+https://github.com/openai/CLIP.git
 Download dependencies:
 
 <details>
-  <summary><b>Text to Motion</b></summary>
+  <summary><b>Text to Motion [x]</b></summary>
 
 ```bash
 bash prepare/download_smpl_files.sh
@@ -81,7 +81,7 @@ bash prepare/download_t2m_evaluators.sh
 </details>
 
 <details>
-  <summary><b>Action to Motion</b></summary>
+  <summary><b>Action to Motion [x]</b></summary>
 
 ```bash
 bash prepare/download_smpl_files.sh
@@ -90,7 +90,7 @@ bash prepare/download_recognition_models.sh
 </details>
 
 <details>
-  <summary><b>Unconstrained</b></summary>
+  <summary><b>Unconstrained [x]</b></summary>
 
 ```bash
 bash prepare/download_smpl_files.sh
@@ -132,11 +132,11 @@ then copy the result dataset to our repository:
 cp -r ../HumanML3D/HumanML3D ./dataset/HumanML3D
 ```
 
-**KIT** - Download from [HumanML3D](https://github.com/EricGuo5513/HumanML3D.git) (no processing needed this time) and the place result in `./dataset/KIT-ML`
+**KIT [x]** - Download from [HumanML3D](https://github.com/EricGuo5513/HumanML3D.git) (no processing needed this time) and the place result in `./dataset/KIT-ML`
 </details>
 
 <details>
-  <summary><b>Action to Motion</b></summary>
+  <summary><b>Action to Motion [x]</b></summary>
 
 **UESTC, HumanAct12** 
 ```bash
@@ -145,7 +145,7 @@ bash prepare/download_a2m_datasets.sh
 </details>
 
 <details>
-  <summary><b>Unconstrained</b></summary>
+  <summary><b>Unconstrained [x]</b></summary>
 
 **HumanAct12** 
 ```bash
@@ -155,10 +155,10 @@ bash prepare/download_unconstrained_datasets.sh
 
 ### 3. Download the pretrained models
 
-Download the model(s) you wish to use, then unzip and place them in `./save/`. 
+Download the model(s) you wish to use, then unzip and place them in `./save/[pretrained]/`. 
 
 <details>
-  <summary><b>Text to Motion</b></summary>
+  <summary><b>Text to Motion [x]</b></summary>
 
 **You need only the first one.** 
 
@@ -177,7 +177,7 @@ Download the model(s) you wish to use, then unzip and place them in `./save/`.
 </details>
 
 <details>
-  <summary><b>Action to Motion</b></summary>
+  <summary><b>Action to Motion [x]</b></summary>
 
 **UESTC**
 
@@ -194,7 +194,7 @@ Download the model(s) you wish to use, then unzip and place them in `./save/`.
 </details>
 
 <details>
-  <summary><b>Unconstrained</b></summary>
+  <summary><b>Unconstrained [x]</b></summary>
 
 **HumanAct12**
 
