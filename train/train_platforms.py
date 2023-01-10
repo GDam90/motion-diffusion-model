@@ -44,6 +44,9 @@ class TensorboardPlatform(TrainPlatform):
     def close(self):
         self.writer.close()
 
+class WandbPlatform(TrainPlatform):
+    def __init__(self, save_dir):
+        pass
 
 class NoPlatform(TrainPlatform):
     def __init__(self, save_dir):
