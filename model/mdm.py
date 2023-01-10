@@ -151,7 +151,7 @@ class MDM(nn.Module):
             enc_text = self.encode_text(y['text'])
             emb += self.embed_text(self.mask_cond(enc_text, force_mask=force_mask))
         if 'action' in self.cond_mode:
-            action_emb = self.embed_action(y['action'])
+            action_emb = self.embed_action(y['action']) # [EMBEDDING OF THE ACTION], [bs, d]
             emb += self.mask_cond(action_emb, force_mask=force_mask)
 
         if self.arch == 'gru':
@@ -165,9 +165,9 @@ class MDM(nn.Module):
 
         if self.arch == 'trans_enc':
             # adding the timestep embed
-            xseq = torch.cat((emb, x), axis=0)  # [seqlen+1, bs, d]
-            xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
-            output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d]
+            xseq = torch.cat((emb, x), axis=0)  # [seqlen+1, bs, d] # [MERGE WITH CONDITION]
+            xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d] # [POSITIONAL EMBEDDING]
+            output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d] # [TRANSFORMER ENCODER]
 
         elif self.arch == 'trans_dec':
             if self.emb_trans_dec:
@@ -184,7 +184,7 @@ class MDM(nn.Module):
             xseq = self.sequence_pos_encoder(xseq)  # [seqlen, bs, d]
             output, _ = self.gru(xseq)
 
-        output = self.output_process(output)  # [bs, njoints, nfeats, nframes]
+        output = self.output_process(output)  # [bs, njoints, nfeats, nframes] # [POSTPROCESS]
         return output
 
 
@@ -247,10 +247,10 @@ class InputProcess(nn.Module):
 
     def forward(self, x):
         bs, njoints, nfeats, nframes = x.shape
-        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints*nfeats)
+        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints*nfeats) # [nframes, bs, njoints * channels] # check if dim of x will change here!!!!!!!!!!!!!
 
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            x = self.poseEmbedding(x)  # [seqlen, bs, d]
+            x = self.poseEmbedding(x)  # [seqlen, bs, d] # Pose Embedding (transforming njoints * channels to d), not the positional one
             return x
         elif self.data_rep == 'rot_vel':
             first_pose = x[[0]]  # [1, bs, 150]
@@ -277,7 +277,7 @@ class OutputProcess(nn.Module):
     def forward(self, output):
         nframes, bs, d = output.shape
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            output = self.poseFinal(output)  # [seqlen, bs, 150]
+            output = self.poseFinal(output)  # [seqlen, bs, 150] # back from d to njoints * channels
         elif self.data_rep == 'rot_vel':
             first_pose = output[[0]]  # [1, bs, d]
             first_pose = self.poseFinal(first_pose)  # [1, bs, 150]
@@ -291,7 +291,7 @@ class OutputProcess(nn.Module):
         return output
 
 
-class EmbedAction(nn.Module):
+class EmbedAction(nn.Module): # [MODULE TO EMBED ACTIONS]
     def __init__(self, num_actions, latent_dim):
         super().__init__()
         self.action_embedding = nn.Parameter(torch.randn(num_actions, latent_dim))

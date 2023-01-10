@@ -201,9 +201,9 @@ class GaussianDiffusion:
     def masked_l2(self, a, b, mask):
         # assuming a.shape == b.shape == bs, J, Jdim, seqlen
         # assuming mask.shape == bs, 1, 1, seqlen
-        loss = self.l2_loss(a, b)
+        loss = self.l2_loss(a, b) # [REDUCTION = None]
         loss = sum_flat(loss * mask.float())  # gives \sigma_euclidean over unmasked elements
-        n_entries = a.shape[1] * a.shape[2]
+        n_entries = a.shape[1] * a.shape[2] # [JOINTS * CHANNELS]
         non_zero_elements = sum_flat(mask) * n_entries
         # print('mask', mask.shape)
         # print('non_zero_elements', non_zero_elements)
@@ -1239,19 +1239,19 @@ class GaussianDiffusion:
         """
 
         # enc = model.model._modules['module']
-        enc = model.model
+        enc = model.model # [MODEL FROM THE WRAPPER]
         mask = model_kwargs['y']['mask']
         get_xyz = lambda sample: enc.rot2xyz(sample, mask=None, pose_rep=enc.pose_rep, translation=enc.translation,
                                              glob=enc.glob,
                                              # jointstype='vertices',  # 3.4 iter/sec # USED ALSO IN MotionCLIP
                                              jointstype='smpl',  # 3.4 iter/sec
-                                             vertstrans=False)
+                                             vertstrans=False) # [CONVERTING ROTATIONS REPRESENTATION IN 3D REPR]
 
         if model_kwargs is None:
             model_kwargs = {}
         if noise is None:
-            noise = th.randn_like(x_start)
-        x_t = self.q_sample(x_start, t, noise=noise)
+            noise = th.randn_like(x_start) # [GENERATING NOISE] # [64, 25, 6, 60]
+        x_t = self.q_sample(x_start, t, noise=noise) # [GENERATING NOISED SAMPLE (t-TH)]
 
         terms = {}
 
@@ -1267,7 +1267,7 @@ class GaussianDiffusion:
             if self.loss_type == LossType.RESCALED_KL:
                 terms["loss"] *= self.num_timesteps
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
+            model_output = model(x_t, self._scale_timesteps(t), **model_kwargs) # [FIRST APPLICATION OF (WRAPPED) MODEL]
 
             if self.model_var_type in [
                 ModelVarType.LEARNED,
@@ -1291,16 +1291,16 @@ class GaussianDiffusion:
                     # Without a factor of 1/1000, the VB term hurts the MSE term.
                     terms["vb"] *= self.num_timesteps / 1000.0
 
-            target = {
+            target = { # [POSSIBLE TARGETS]
                 ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
                     x_start=x_start, x_t=x_t, t=t
                 )[0],
                 ModelMeanType.START_X: x_start,
                 ModelMeanType.EPSILON: noise,
-            }[self.model_mean_type]
+            }[self.model_mean_type] # [OUR TARGET]
             assert model_output.shape == target.shape == x_start.shape  # [bs, njoints, nfeats, nframes]
 
-            terms["rot_mse"] = self.masked_l2(target, model_output, mask) # mean_flat(rot_mse)
+            terms["rot_mse"] = self.masked_l2(target, model_output, mask) # mean_flat(rot_mse) # [FOR LOSS IN 6D ANGLES, WHEN get_xyz IS APPLIED WE CALCULATE LOSS ON POSITIONS]
 
             target_xyz, model_output_xyz = None, None
 
@@ -1317,7 +1317,7 @@ class GaussianDiffusion:
                     model_output_xyz_vel = (model_output_xyz[:, :, :, 1:] - model_output_xyz[:, :, :, :-1])
                     terms["vel_xyz_mse"] = self.masked_l2(target_xyz_vel, model_output_xyz_vel, mask[:, :, :, 1:])
 
-            if self.lambda_fc > 0.:
+            if self.lambda_fc > 0.: # [FOOT CONTACT LOSS]
                 torch.autograd.set_detect_anomaly(True)
                 if self.data_rep == 'rot6d' and dataset.dataname in ['humanact12', 'uestc']:
                     target_xyz = get_xyz(target) if target_xyz is None else target_xyz

@@ -94,7 +94,7 @@ def sum_flat(tensor):
     """
     Take the sum over all non-batch dimensions.
     """
-    return tensor.sum(dim=list(range(1, len(tensor.shape))))
+    return tensor.sum(dim=list(range(1, len(tensor.shape)))) # [SUM OVER ALL DIMENSIONS BUT BATCH]
 
 
 def normalization(channels):
