@@ -1,3 +1,11 @@
+# Folders
+dataset/
+save/
+assets/
+body_models/
+glove/
+.vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
