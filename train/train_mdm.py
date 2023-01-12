@@ -10,7 +10,7 @@ import json
 from utils.fixseed import fixseed
 from utils.parser_util import train_args
 from utils import dist_util
-from train.training_loop import TrainLoop
+from training_loop import TrainLoop
 from data_loaders.get_data import get_dataset_loader
 from utils.model_util import create_model_and_diffusion
 from train.train_platforms import ClearmlPlatform, TensorboardPlatform, NoPlatform  # required for the eval operation
