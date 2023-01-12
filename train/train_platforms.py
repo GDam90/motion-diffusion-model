@@ -1,4 +1,5 @@
 import os
+import wandb as wb
 
 class TrainPlatform:
     def __init__(self, save_dir):
@@ -46,10 +47,25 @@ class TensorboardPlatform(TrainPlatform):
 
 class WandbPlatform(TrainPlatform):
     def __init__(self, save_dir):
-        pass
+        name = os.path.split(save_dir)[-1]
+        self.project_name = "motion_diffusion"
+        self.group = "exp_group"
+        self.entity = "pinlab-sapienza"
+        self.name = name
+        wb.init(
+            project=self.project_name,
+            entity=self.entity,
+            group=self.group,
+            name=self.name,
+            # config=self
+        )
+        
+    def report_scalar(self, name, value, iteration, group_name=None):
+        wb.log({f'{group_name}/{name}' : value}, step=iteration)
+    
+    def close(self):
+        wb.finish()
 
 class NoPlatform(TrainPlatform):
     def __init__(self, save_dir):
         pass
-
-

@@ -145,7 +145,7 @@ class TrainLoop:
                             continue
                         else:
                             self.train_platform.report_scalar(name=k, value=v, iteration=self.step, group_name='Loss')
-
+                            
                 if self.step % self.save_interval == 0:
                     self.save()
                     self.model.eval()
