@@ -277,13 +277,13 @@ class OutputProcess(nn.Module):
     def forward(self, output):
         nframes, bs, d = output.shape
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            output = self.poseFinal(output)  # [seqlen, bs, 150] # back from d to njoints * channels
+            output = self.poseFinal(output)  # [seqlen, bs, njoints * channels] # back from d to njoints * channels
         elif self.data_rep == 'rot_vel':
             first_pose = output[[0]]  # [1, bs, d]
-            first_pose = self.poseFinal(first_pose)  # [1, bs, 150]
+            first_pose = self.poseFinal(first_pose)  # [1, bs, njoints * channels]
             vel = output[1:]  # [seqlen-1, bs, d]
-            vel = self.velFinal(vel)  # [seqlen-1, bs, 150]
-            output = torch.cat((first_pose, vel), axis=0)  # [seqlen, bs, 150]
+            vel = self.velFinal(vel)  # [seqlen-1, bs, njoints * channels]
+            output = torch.cat((first_pose, vel), axis=0)  # [seqlen, bs, njoints * channels]
         else:
             raise ValueError
         output = output.reshape(nframes, bs, self.njoints, self.nfeats)

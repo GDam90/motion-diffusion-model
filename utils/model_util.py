@@ -92,6 +92,8 @@ def create_gaussian_diffusion(args):
     if not timestep_respacing:
         timestep_respacing = [steps]
 
+    data_rep = 'xyz' if args.dataset == "h36m" else 'rot6d'
+    
     return SpacedDiffusion(
         use_timesteps=space_timesteps(steps, timestep_respacing),
         betas=betas,
@@ -112,4 +114,5 @@ def create_gaussian_diffusion(args):
         lambda_vel=args.lambda_vel,
         lambda_rcxyz=args.lambda_rcxyz,
         lambda_fc=args.lambda_fc,
+        data_rep=data_rep,
     )

@@ -25,7 +25,7 @@ def collate(batch):
     if 'lengths' in notnone_batches[0]:
         lenbatch = [b['lengths'] for b in notnone_batches]
     else:
-        lenbatch = [len(b['inp'][0][0]) for b in notnone_batches]
+        lenbatch = [len(b['inp'][0][0]) for b in notnone_batches] # [joints, channels, timesteps]
 
 
     databatchTensor = collate_tensors(databatch)
