@@ -2,7 +2,8 @@
 dataset/
 save/
 assets/
-body_models/
+body_models/kit
+body_models/t2m
 glove/
 .vscode/
 wandb/
