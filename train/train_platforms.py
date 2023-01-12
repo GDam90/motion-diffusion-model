@@ -66,6 +66,9 @@ class WandbPlatform(TrainPlatform):
     def close(self):
         wb.finish()
 
+    def report_args(self, args, name):
+        wb.config.update(args)
+
 class NoPlatform(TrainPlatform):
     def __init__(self, save_dir):
         pass
