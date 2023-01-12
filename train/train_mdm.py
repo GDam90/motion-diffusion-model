@@ -3,7 +3,7 @@
 Train a diffusion model on images.
 """
 import sys
-sys.path.append("/media/hdd/guide/motion-diffusion-model")
+sys.path.append('/media/hdd/luca_s/code/DDPMotion/motion-diffusion-model')
 
 import os
 import json

@@ -1241,6 +1241,8 @@ class GaussianDiffusion:
         # enc = model.model._modules['module']
         enc = model.model # [MODEL FROM THE WRAPPER]
         mask = model_kwargs['y']['mask']
+
+        # !Luca: We don't need this function when dealing with 3D 
         get_xyz = lambda sample: enc.rot2xyz(sample, mask=None, pose_rep=enc.pose_rep, translation=enc.translation,
                                              glob=enc.glob,
                                              # jointstype='vertices',  # 3.4 iter/sec # USED ALSO IN MotionCLIP
@@ -1255,6 +1257,7 @@ class GaussianDiffusion:
 
         terms = {}
 
+        # *Luca: This if gets ignored by default
         if self.loss_type == LossType.KL or self.loss_type == LossType.RESCALED_KL:
             terms["loss"] = self._vb_terms_bpd(
                 model=model,
@@ -1266,9 +1269,11 @@ class GaussianDiffusion:
             )["output"]
             if self.loss_type == LossType.RESCALED_KL:
                 terms["loss"] *= self.num_timesteps
+        
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            model_output = model(x_t, self._scale_timesteps(t), **model_kwargs) # [FIRST APPLICATION OF (WRAPPED) MODEL]
+            model_output = model(x_t, self._scale_timesteps(t), **model_kwargs) # [FIRST APPLICATION OF (WRAPPED) MODEL] # [64, 25, 6, 60]
 
+            # *Luca: This if gets ignored by default
             if self.model_var_type in [
                 ModelVarType.LEARNED,
                 ModelVarType.LEARNED_RANGE,
@@ -1286,6 +1291,8 @@ class GaussianDiffusion:
                     t=t,
                     clip_denoised=False,
                 )["output"]
+
+                # *Luca: This if gets ignored by default
                 if self.loss_type == LossType.RESCALED_MSE:
                     # Divide by 1000 for equivalence with initial implementation.
                     # Without a factor of 1/1000, the VB term hurts the MSE term.
@@ -1298,6 +1305,7 @@ class GaussianDiffusion:
                 ModelMeanType.START_X: x_start,
                 ModelMeanType.EPSILON: noise,
             }[self.model_mean_type] # [OUR TARGET]
+
             assert model_output.shape == target.shape == x_start.shape  # [bs, njoints, nfeats, nframes]
             
             terms["rot_mse"] = self.masked_l2(target, model_output, mask) # mean_flat(rot_mse) # [FOR LOSS IN 6D ANGLES, WHEN get_xyz IS APPLIED WE CALCULATE LOSS ON POSITIONS]
@@ -1309,6 +1317,7 @@ class GaussianDiffusion:
                 model_output_xyz = get_xyz(model_output)  # [bs, nvertices, 3, nframes]
                 terms["rcxyz_mse"] = self.masked_l2(target_xyz, model_output_xyz, mask)  # mean_flat((target_xyz - model_output_xyz) ** 2)
 
+            # *Luca: This if gets ignored by default (because we don't have a dataset with data_rep='rot6d')
             if self.lambda_vel_rcxyz > 0.:
                 if self.data_rep == 'rot6d' and dataset.dataname in ['humanact12', 'uestc']:
                     target_xyz = get_xyz(target) if target_xyz is None else target_xyz

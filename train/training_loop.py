@@ -1,3 +1,7 @@
+# !Luca: added 
+import sys
+sys.path.append('/media/hdd/luca_s/code/DDPMotion/motion-diffusion-model')
+
 import copy
 import functools
 import os
@@ -18,6 +22,7 @@ from diffusion.resample import create_named_schedule_sampler
 from data_loaders.humanml.networks.evaluator_wrapper import EvaluatorMDMWrapper
 from eval import eval_humanml, eval_humanact12_uestc
 from data_loaders.get_data import get_dataset_loader
+
 
 
 # For ImageNet experiments, this was a good default value.
