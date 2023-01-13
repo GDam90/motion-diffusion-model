@@ -93,6 +93,9 @@ class MDM(nn.Module):
             if 'action' in self.cond_mode:
                 self.embed_action = EmbedAction(self.num_actions, self.latent_dim)
                 print('EMBED ACTION')
+            if 'motion' in self.cond_mode:
+                self.embed_motion = EmbedMotion(self.latent_dim)
+                print('EMBED MOTION')
 
         self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints,
                                             self.nfeats)
@@ -150,13 +153,22 @@ class MDM(nn.Module):
         bs, njoints, nfeats, nframes = x.shape
         emb = self.embed_timestep(timesteps)  # [1, bs, d]
 
-        force_mask = y.get('uncond', False)
+        if 'text' in self.cond_mode or 'action' in self.cond_mode:
+            force_mask = y.get('uncond', False)
+
         if 'text' in self.cond_mode:
             enc_text = self.encode_text(y['text'])
             emb += self.embed_text(self.mask_cond(enc_text, force_mask=force_mask))
         if 'action' in self.cond_mode:
             action_emb = self.embed_action(y['action'])
             emb += self.mask_cond(action_emb, force_mask=force_mask)
+
+        # !Luca: look into y motion and see if it is a dict or a tensor
+        if 'motion' in self.cond_mode:
+            motion_emb = self.embed_motion(y['motion'])
+            emd += motion_emb
+            # *Luca: this is the original code, force_mask is False) by default if not unconditioned
+            # emb += self.mask_cond(motion_emb, force_mask=force_mask)
 
         if self.arch == 'gru':
             x_reshaped = x.reshape(bs, njoints*nfeats, 1, nframes)
@@ -167,6 +179,7 @@ class MDM(nn.Module):
 
         x = self.input_process(x)
 
+        # *Luca: by default this is the architecture used
         if self.arch == 'trans_enc':
             # adding the timestep embed
             xseq = torch.cat((emb, x), axis=0)  # [seqlen+1, bs, d]
@@ -305,18 +318,57 @@ class EmbedAction(nn.Module):
         output = self.action_embedding[idx]
         return output
 
+class EmbedMotion(nn.Module):
+    def __init__(self, num_actions, latent_dim):
+        super().__init__()
+        self.motion_embedding = nn.Parameter(torch.randn(num_actions, latent_dim))
+
+    def forward(self, input):
+        idx = input[:, 0].to(torch.long)  # an index array must be long
+        output = self.motion_embedding[idx]
+        return output
+
 # write main 
 if __name__ == '__main__':
     
+    # # !Luca:this dictionary contains the arguments for the model returned by get_model_args
+    # args_and_data = {
+    # 'modeltype':'',
+    # 'njoints':25,
+    # 'nfeats':6,
+    # 'num_actions':40,
+    # 'translation':True,
+    # #!Luca:check if this needs to be changed
+    # 'pose_rep':'rot6d',
+    # 'glob':True,
+    # 'glob_rot':True,
+    # 'latent_dim':512,
+    # 'ff_size':1024,
+    # 'num_layers':8,
+    # 'num_heads':4,
+    # 'dropout':0.1,
+    # 'activation':'gelu',
+    # #!Luca:check if this needs to be changed
+    # 'data_rep':'rot6d',
+    # 'cond_mode':'action',
+    # 'cond_mask_prob':0.0,
+    # 'action_emb':'tensor',
+    # 'arch':'trans_enc',
+    # 'emb_trans_dec':False,
+    # 'clip_version':'ViT-B/32',
+    # 'dataset':'uestc'
+    # }
+
+
     # !Luca:this dictionary contains the arguments for the model returned by get_model_args
     args_and_data = {
     'modeltype':'',
-    'njoints':25,
-    'nfeats':6,
-    'num_actions':40,
+    'njoints':22,
+    'nfeats':3,
+    'num_actions':15,
     'translation':True,
     #!Luca:check if this needs to be changed
-    'pose_rep':'rot6d',
+    'pose_rep':'xyz',
     'glob':True,
     'glob_rot':True,
     'latent_dim':512,
@@ -326,20 +378,30 @@ if __name__ == '__main__':
     'dropout':0.1,
     'activation':'gelu',
     #!Luca:check if this needs to be changed
-    'data_rep':'rot6d',
-    'cond_mode':'action',
+    'data_rep':'xyz',
+    'cond_mode':'uncond',
     'cond_mask_prob':0.0,
     'action_emb':'tensor',
     'arch':'trans_enc',
     'emb_trans_dec':False,
     'clip_version':'ViT-B/32',
-    'dataset':'uestc'
+    'dataset':'h36m'
     }
     
     
     model = MDM(**args_and_data)
 
-    # Run the model on a dummy input
-    x = torch.randn(1, 25, 6, 100 ,)
-    out = model(x)
+    # # Run the model on a dummy input
+    # # creare a tensor containing True of size bx1x1xt
+    # mask = torch.ones(1, 1, 1, 1, dtype=torch.bool, device='cuda:0')
+    # lenghts = torch.tensor([22], device='cuda:0') # lenghts of the sequence of the batch
+    # action = torch.tensor([1], device='cuda:0')
+    # action_text = torch.tensor(['purchases'], dtype=str, device='cuda:0')
+
+
+    x = torch.randn(1, 22, 3, 1)
+    t = torch.tensor([1], device='cuda:0')
+    out = model(x, t)
     print(out.shape)
+
+

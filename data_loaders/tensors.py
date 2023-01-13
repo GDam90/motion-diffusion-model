@@ -21,7 +21,13 @@ def collate_tensors(batch):
 
 def collate(batch):
     notnone_batches = [b for b in batch if b is not None]
+
+    # *Luca: databatch is a list with the input motion
     databatch = [b['inp'] for b in notnone_batches]
+
+    # *Luca: motion_condition_batch is a list with the input motion condition
+    motion_condition_batch = [b['motion_condition'] for b in notnone_batches]
+
     if 'lengths' in notnone_batches[0]:
         lenbatch = [b['lengths'] for b in notnone_batches]
     else:
