@@ -146,7 +146,7 @@ class TrainLoop:
                         else:
                             self.train_platform.report_scalar(name=k, value=v, iteration=self.step, group_name='Loss')
                             
-                if self.step % self.save_interval == 0:
+                if self.step % self.save_interval == 0 and self.step != 0: # AVOID SAVE AND EVAL HERE
                     self.save()
                     self.model.eval()
                     self.evaluate()
@@ -189,7 +189,7 @@ class TrainLoop:
         elif self.dataset in ['humanact12', 'uestc']:
             eval_args = SimpleNamespace(num_seeds=self.args.eval_rep_times, num_samples=self.args.eval_num_samples,
                                         batch_size=self.args.eval_batch_size, device=self.device, guidance_param = 1,
-                                        dataset=self.dataset, unconstrained=self.args.unconstrained,
+                                        dataset=self.dataset, unconstrained=self.args.unconstrained, cond_mode=self.cond_mode,
                                         model_path=os.path.join(self.save_dir, self.ckpt_file_name()))
             eval_dict = eval_humanact12_uestc.evaluate(eval_args, model=self.model, diffusion=self.diffusion, data=self.data.dataset)
             print(f'Evaluation results on {self.dataset}: {sorted(eval_dict["feats"].items())}')
