@@ -68,7 +68,7 @@ class Evaluation:
                 mkey = f"{metric}_{key}"
                 if model.cond_mode != 'no_cond':
                     print_logs(metric, key)
-                    metrics[mkey], _ = calculate_accuracy(model, loader,
+                    metrics[mkey], _ = calculate_accuracy(model, loader, # [CALCULATE THE ACCURACY USING STGCN]
                                                           self.num_classes,
                                                           self.model, self.device)
                 else:
