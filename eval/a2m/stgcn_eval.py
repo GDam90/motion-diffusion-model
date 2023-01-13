@@ -32,6 +32,15 @@ def convert_x_to_rot6d(x, pose_rep):
 
 
 class NewDataloader:
+    '''
+    Creates a dictionary collecting the fields:
+        - output : can be "gen"(erated) or "gt". The motion.
+        - y : dictionary with keys:
+            - lengths : lengths of each element in the batch (timesteps)
+            - mask : a mask
+        - output_xyz : the xyz representation from rot6d
+        
+    '''
     def __init__(self, mode, model, diffusion, dataiterator, device, cond_mode, dataset, num_samples):
         assert mode in ["gen", "gt"]
 
