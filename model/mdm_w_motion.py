@@ -165,7 +165,7 @@ class MDM(nn.Module):
 
         # !Luca: look into y motion and see if it is a dict or a tensor
         if 'motion' in self.cond_mode:
-            motion_emb = self.embed_motion(y['motion'])
+            motion_emb = self.embed_motion(y['motion_condition'])
             emd += motion_emb
             # *Luca: this is the original code, force_mask is False) by default if not unconditioned
             # emb += self.mask_cond(motion_emb, force_mask=force_mask)
