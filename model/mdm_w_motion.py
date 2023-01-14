@@ -17,6 +17,9 @@ class MDM(nn.Module):
                  arch='trans_enc', emb_trans_dec=False, clip_version=None, **kargs):
         super().__init__()
 
+        # !Luca: change this pecionata asap
+        self.prediction_or_action = 'prediction'
+
         self.legacy = legacy
         self.modeltype = modeltype
         self.njoints = njoints
@@ -91,8 +94,16 @@ class MDM(nn.Module):
                 self.clip_version = clip_version
                 self.clip_model = self.load_and_freeze_clip(clip_version)
             if 'action' in self.cond_mode:
-                self.embed_action = EmbedAction(self.num_actions, self.latent_dim)
-                print('EMBED ACTION')
+
+                # !Luca: added this for now, change later
+                if self.prediction_or_action == 'prediction':
+                    self.embed_motion = EmbedMotion(self.njoints*self.nfeats*30 ,self.latent_dim)
+                    print('EMBED MOTION')
+                else:    
+                    self.embed_action = EmbedAction(self.num_actions, self.latent_dim)
+                    print('EMBED ACTION')
+
+                
             if 'motion' in self.cond_mode:
                 self.embed_motion = EmbedMotion(self.latent_dim)
                 print('EMBED MOTION')
@@ -159,15 +170,26 @@ class MDM(nn.Module):
         if 'text' in self.cond_mode:
             enc_text = self.encode_text(y['text'])
             emb += self.embed_text(self.mask_cond(enc_text, force_mask=force_mask))
+        
+        # !Luca: For now keep motion and action together since it will affect other files too        
         if 'action' in self.cond_mode:
-            action_emb = self.embed_action(y['action'])
-            emb += self.mask_cond(action_emb, force_mask=force_mask)
+            
+            
+            if self.prediction_or_action == 'prediction':
+                motion_emb = self.embed_motion(y['motion_condition'])
+                # !Luca: added an additional dimension = 1 to make it same as emb 
+                emb += motion_emb
+                # *Luca: this is the original code, force_mask is False) by default if not unconditioned        
+            
+            else:
+                action_emb = self.embed_action(y['action'])
+                emb += self.mask_cond(action_emb, force_mask=force_mask)
 
-        # !Luca: look into y motion and see if it is a dict or a tensor
-        if 'motion' in self.cond_mode:
-            motion_emb = self.embed_motion(y['motion_condition'])
-            emd += motion_emb
-            # *Luca: this is the original code, force_mask is False) by default if not unconditioned
+        # !Luca: This could be a possible solution to the problem
+        # if 'motion' in self.cond_mode:
+        #     motion_emb = self.embed_motion(y['motion_condition'])
+        #     emd += motion_emb
+        #     # *Luca: this is the original code, force_mask is False) by default if not unconditioned
             # emb += self.mask_cond(motion_emb, force_mask=force_mask)
 
         if self.arch == 'gru':
@@ -318,14 +340,19 @@ class EmbedAction(nn.Module):
         output = self.action_embedding[idx]
         return output
 
+
+# !Luca: this class has been added to the original code
 class EmbedMotion(nn.Module):
-    def __init__(self, num_actions, latent_dim):
+    def __init__(self, input_dim, latent_dim):
         super().__init__()
-        self.motion_embedding = nn.Parameter(torch.randn(num_actions, latent_dim))
+        # create a linean layer that maps the input to the latent space
+        self.motion_embedding = nn.Linear(input_dim, latent_dim)
+        # self.motion_embedding = nn.Parameter(torch.randn(input_dim, latent_dim))
 
     def forward(self, input):
-        idx = input[:, 0].to(torch.long)  # an index array must be long
-        output = self.motion_embedding[idx]
+        # input needs to be flattened
+        flat_input = input.reshape(input.shape[0], -1)
+        output = self.motion_embedding(flat_input)
         return output
 
 # write main 
@@ -379,7 +406,7 @@ if __name__ == '__main__':
     'activation':'gelu',
     #!Luca:check if this needs to be changed
     'data_rep':'xyz',
-    'cond_mode':'uncond',
+    'cond_mode':'action',
     'cond_mask_prob':0.0,
     'action_emb':'tensor',
     'arch':'trans_enc',
@@ -397,11 +424,17 @@ if __name__ == '__main__':
     # lenghts = torch.tensor([22], device='cuda:0') # lenghts of the sequence of the batch
     # action = torch.tensor([1], device='cuda:0')
     # action_text = torch.tensor(['purchases'], dtype=str, device='cuda:0')
+    batch = 64
 
+    x = torch.randn(batch, 22, 3, 60)
+    y = {}
+    y['motion_condition'] = torch.randn(batch, 22, 3, 30)
+    # create a tensor of batch elements
+    t = torch.randn(batch)
+    # tranform tensor into long tensor
+    t = t.to(torch.long)
 
-    x = torch.randn(1, 22, 3, 1)
-    t = torch.tensor([1], device='cuda:0')
-    out = model(x, t)
+    out = model(x, t, y)
     print(out.shape)
 
 
