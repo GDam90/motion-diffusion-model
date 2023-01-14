@@ -98,8 +98,11 @@ class H36M_Dataset(Dataset):
                         # tmp_data_idx_1 = [(subj, action, subact)] * len(valid_frames)
                         tmp_data_idx_1 = [key] * len(valid_frames)
                         tmp_data_idx_2 = list(valid_frames)
+                        
+                        # !Luca: added from Guido's last commit
+                        act_idx_3 = [action_idx] * len(valid_frames)
                         # self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2))
-                        self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, [action_idx])) # ASSOCIATE MOTION TO THE ACTION (prev line is original)
+                        self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, act_idx_3)) # ASSOCIATE MOTION TO THE ACTION (prev line is original)
                         key += 1
                 else:
                     #print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, 1))

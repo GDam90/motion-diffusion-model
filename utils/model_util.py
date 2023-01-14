@@ -1,6 +1,6 @@
-from model.mdm import MDM
+# from model.mdm import MDM
 # !Luca: commented out for motion_condition_batch
-# from model.mdm_w_motion import MDM
+from model.mdm_w_motion import MDM
 
 
 

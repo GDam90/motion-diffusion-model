@@ -59,7 +59,7 @@ def collate(batch):
         actionbatch = [b['action'] for b in notnone_batches]
         cond['y'].update({'action': torch.as_tensor(actionbatch).unsqueeze(1)})
         # !Luca: added for motion_condition_batch
-        cond['y'].update({'motion_condition': motion_condition_batch})
+        cond['y'].update({'motion_condition': motion_condition_batchTensor})
         cond['y'].update({'motion_condition_lengths': motion_condition_lenbatchTensor})
 
     # collate action textual names
