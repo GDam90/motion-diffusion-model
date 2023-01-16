@@ -3,14 +3,14 @@
 Train a diffusion model on images.
 """
 import sys
-sys.path.append("/media/hdd/guide/motion-diffusion-model")
+sys.path.append('/media/hdd/luca_s/code/DDPMotion/motion-diffusion-model')
 
 import os
 import json
 from utils.fixseed import fixseed
 from utils.parser_util import train_args
 from utils import dist_util
-from train.training_loop import TrainLoop
+from training_loop import TrainLoop
 from data_loaders.get_data import get_dataset_loader
 from utils.model_util import create_model_and_diffusion
 from train.train_platforms import ClearmlPlatform, TensorboardPlatform, NoPlatform, WandbPlatform  # required for the eval operation

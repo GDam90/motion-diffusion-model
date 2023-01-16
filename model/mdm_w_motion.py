@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/media/hdd/luca_s/code/DDPMotion/motion-diffusion-model')
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,9 +17,13 @@ class MDM(nn.Module):
                  arch='trans_enc', emb_trans_dec=False, clip_version=None, **kargs):
         super().__init__()
 
+        # !Luca: change this pecionata asap
+        self.prediction_or_action = 'prediction'
+
         self.legacy = legacy
         self.modeltype = modeltype
         self.njoints = njoints
+        # !Luca:changed from 6 to 3
         self.nfeats = nfeats
         self.num_actions = num_actions
         self.data_rep = data_rep
@@ -87,10 +94,20 @@ class MDM(nn.Module):
                 self.clip_version = clip_version
                 self.clip_model = self.load_and_freeze_clip(clip_version)
             if 'action' in self.cond_mode:
-                self.embed_action = EmbedAction(self.num_actions, self.latent_dim)
-                print('EMBED ACTION')
 
-        # *Luca: They perform a linear transformation to the output of the encoder (latent_dim -> input_feats)
+                # !Luca: added this for now, change later
+                if self.prediction_or_action == 'prediction':
+                    self.embed_motion = EmbedMotion(self.njoints*self.nfeats*30 ,self.latent_dim)
+                    print('EMBED MOTION')
+                else:    
+                    self.embed_action = EmbedAction(self.num_actions, self.latent_dim)
+                    print('EMBED ACTION')
+
+                
+            if 'motion' in self.cond_mode:
+                self.embed_motion = EmbedMotion(self.latent_dim)
+                print('EMBED MOTION')
+
         self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints,
                                             self.nfeats)
 
@@ -147,13 +164,33 @@ class MDM(nn.Module):
         bs, njoints, nfeats, nframes = x.shape
         emb = self.embed_timestep(timesteps)  # [1, bs, d]
 
-        force_mask = y.get('uncond', False)
+        if 'text' in self.cond_mode or 'action' in self.cond_mode:
+            force_mask = y.get('uncond', False)
+
         if 'text' in self.cond_mode:
             enc_text = self.encode_text(y['text'])
             emb += self.embed_text(self.mask_cond(enc_text, force_mask=force_mask))
+        
+        # !Luca: For now keep motion and action together since it will affect other files too        
         if 'action' in self.cond_mode:
-            action_emb = self.embed_action(y['action']) # [EMBEDDING OF THE ACTION], [bs, d]
-            emb += self.mask_cond(action_emb, force_mask=force_mask)
+            
+            
+            if self.prediction_or_action == 'prediction':
+                motion_emb = self.embed_motion(y['motion_condition'])
+                # !Luca: added an additional dimension = 1 to make it same as emb 
+                emb += motion_emb
+                # *Luca: this is the original code, force_mask is False) by default if not unconditioned        
+            
+            else:
+                action_emb = self.embed_action(y['action'])
+                emb += self.mask_cond(action_emb, force_mask=force_mask)
+
+        # !Luca: This could be a possible solution to the problem
+        # if 'motion' in self.cond_mode:
+        #     motion_emb = self.embed_motion(y['motion_condition'])
+        #     emd += motion_emb
+        #     # *Luca: this is the original code, force_mask is False) by default if not unconditioned
+            # emb += self.mask_cond(motion_emb, force_mask=force_mask)
 
         if self.arch == 'gru':
             x_reshaped = x.reshape(bs, njoints*nfeats, 1, nframes)
@@ -164,11 +201,12 @@ class MDM(nn.Module):
 
         x = self.input_process(x)
 
+        # *Luca: by default this is the architecture used
         if self.arch == 'trans_enc':
             # adding the timestep embed
-            xseq = torch.cat((emb, x), axis=0)  # [seqlen+1, bs, d] # [MERGE WITH CONDITION]
-            xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d] # [POSITIONAL EMBEDDING]
-            output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d] # [TRANSFORMER ENCODER]
+            xseq = torch.cat((emb, x), axis=0)  # [seqlen+1, bs, d]
+            xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
+            output = self.seqTransEncoder(xseq)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d]
 
         elif self.arch == 'trans_dec':
             if self.emb_trans_dec:
@@ -185,7 +223,7 @@ class MDM(nn.Module):
             xseq = self.sequence_pos_encoder(xseq)  # [seqlen, bs, d]
             output, _ = self.gru(xseq)
 
-        output = self.output_process(output)  # [bs, njoints, nfeats, nframes] # [POSTPROCESS]
+        output = self.output_process(output)  # [bs, njoints, nfeats, nframes]
         return output
 
 
@@ -248,10 +286,10 @@ class InputProcess(nn.Module):
 
     def forward(self, x):
         bs, njoints, nfeats, nframes = x.shape
-        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints*nfeats) # [nframes, bs, njoints * channels] # check if dim of x will change here!!!!!!!!!!!!!
+        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints*nfeats)
 
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            x = self.poseEmbedding(x)  # [seqlen, bs, d] # Pose Embedding (transforming njoints * channels to d), not the positional one
+            x = self.poseEmbedding(x)  # [seqlen, bs, d]
             return x
         elif self.data_rep == 'rot_vel':
             first_pose = x[[0]]  # [1, bs, 150]
@@ -278,13 +316,13 @@ class OutputProcess(nn.Module):
     def forward(self, output):
         nframes, bs, d = output.shape
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            output = self.poseFinal(output)  # [seqlen, bs, njoints * channels] # back from d to njoints * channels
+            output = self.poseFinal(output)  # [seqlen, bs, 150]
         elif self.data_rep == 'rot_vel':
             first_pose = output[[0]]  # [1, bs, d]
-            first_pose = self.poseFinal(first_pose)  # [1, bs, njoints * channels]
+            first_pose = self.poseFinal(first_pose)  # [1, bs, 150]
             vel = output[1:]  # [seqlen-1, bs, d]
-            vel = self.velFinal(vel)  # [seqlen-1, bs, njoints * channels]
-            output = torch.cat((first_pose, vel), axis=0)  # [seqlen, bs, njoints * channels]
+            vel = self.velFinal(vel)  # [seqlen-1, bs, 150]
+            output = torch.cat((first_pose, vel), axis=0)  # [seqlen, bs, 150]
         else:
             raise ValueError
         output = output.reshape(nframes, bs, self.njoints, self.nfeats)
@@ -292,7 +330,7 @@ class OutputProcess(nn.Module):
         return output
 
 
-class EmbedAction(nn.Module): # [MODULE TO EMBED ACTIONS]
+class EmbedAction(nn.Module):
     def __init__(self, num_actions, latent_dim):
         super().__init__()
         self.action_embedding = nn.Parameter(torch.randn(num_actions, latent_dim))
@@ -302,22 +340,101 @@ class EmbedAction(nn.Module): # [MODULE TO EMBED ACTIONS]
         output = self.action_embedding[idx]
         return output
 
-# if __name__ == '__main__':
-#     # test
-#     from torchsummary import summary
-#     import torch
-#     from torch import nn
-#     import numpy as np
-#     from torch.nn import functional as F
 
-#     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-#     print(device)
+# !Luca: this class has been added to the original code
+class EmbedMotion(nn.Module):
+    def __init__(self, input_dim, latent_dim):
+        super().__init__()
+        # create a linean layer that maps the input to the latent space
+        self.motion_embedding = nn.Linear(input_dim, latent_dim)
+        # self.motion_embedding = nn.Parameter(torch.randn(input_dim, latent_dim))
 
-#     # test
-#     d_model = 256
-#     nhead = 8
-#     num_encoder_layers = 6
-#     num_decoder_layers = 6
-#     dim_feedforward = 1024
-#     dropout = 0.1
-#     activation =
+    def forward(self, input):
+        # input needs to be flattened
+        flat_input = input.reshape(input.shape[0], -1)
+        output = self.motion_embedding(flat_input)
+        return output
+
+# write main 
+if __name__ == '__main__':
+    
+    # # !Luca:this dictionary contains the arguments for the model returned by get_model_args
+    # args_and_data = {
+    # 'modeltype':'',
+    # 'njoints':25,
+    # 'nfeats':6,
+    # 'num_actions':40,
+    # 'translation':True,
+    # #!Luca:check if this needs to be changed
+    # 'pose_rep':'rot6d',
+    # 'glob':True,
+    # 'glob_rot':True,
+    # 'latent_dim':512,
+    # 'ff_size':1024,
+    # 'num_layers':8,
+    # 'num_heads':4,
+    # 'dropout':0.1,
+    # 'activation':'gelu',
+    # #!Luca:check if this needs to be changed
+    # 'data_rep':'rot6d',
+    # 'cond_mode':'action',
+    # 'cond_mask_prob':0.0,
+    # 'action_emb':'tensor',
+    # 'arch':'trans_enc',
+    # 'emb_trans_dec':False,
+    # 'clip_version':'ViT-B/32',
+    # 'dataset':'uestc'
+    # }
+
+
+    # !Luca:this dictionary contains the arguments for the model returned by get_model_args
+    args_and_data = {
+    'modeltype':'',
+    'njoints':22,
+    'nfeats':3,
+    'num_actions':15,
+    'translation':True,
+    #!Luca:check if this needs to be changed
+    'pose_rep':'xyz',
+    'glob':True,
+    'glob_rot':True,
+    'latent_dim':512,
+    'ff_size':1024,
+    'num_layers':8,
+    'num_heads':4,
+    'dropout':0.1,
+    'activation':'gelu',
+    #!Luca:check if this needs to be changed
+    'data_rep':'xyz',
+    'cond_mode':'action',
+    'cond_mask_prob':0.0,
+    'action_emb':'tensor',
+    'arch':'trans_enc',
+    'emb_trans_dec':False,
+    'clip_version':'ViT-B/32',
+    'dataset':'h36m'
+    }
+    
+    
+    model = MDM(**args_and_data)
+
+    # # Run the model on a dummy input
+    # # creare a tensor containing True of size bx1x1xt
+    # mask = torch.ones(1, 1, 1, 1, dtype=torch.bool, device='cuda:0')
+    # lenghts = torch.tensor([22], device='cuda:0') # lenghts of the sequence of the batch
+    # action = torch.tensor([1], device='cuda:0')
+    # action_text = torch.tensor(['purchases'], dtype=str, device='cuda:0')
+    batch = 64
+
+    x = torch.randn(batch, 22, 3, 60)
+    y = {}
+    y['motion_condition'] = torch.randn(batch, 22, 3, 30)
+    # create a tensor of batch elements
+    t = torch.randn(batch)
+    # tranform tensor into long tensor
+    t = t.to(torch.long)
+
+    out = model(x, t, y)
+    print(out.shape)
+
+

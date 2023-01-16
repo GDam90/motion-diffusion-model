@@ -8,7 +8,7 @@ import torch
 from .dataset import Dataset
 # from torch.utils.data import Dataset
 
-action2motion_joints = [8, 1, 2, 3, 4, 5, 6, 7, 0, 9, 10, 11, 12, 13, 14, 21, 24, 38]
+action2motion_joints = [8, 1, 2, 3, 4, 5, 6, 7, 0, 9, 10, 11, 12, 13, 14, 21, 24, 38] # [18]
 
 
 def get_z(cam_s, cam_pos, joints, img_size, flength):

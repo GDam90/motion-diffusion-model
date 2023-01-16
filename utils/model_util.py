@@ -1,4 +1,9 @@
-from model.mdm import MDM
+# from model.mdm import MDM
+# !Luca: commented out for motion_condition_batch
+from model.mdm_w_motion import MDM
+
+
+
 from diffusion import gaussian_diffusion as gd
 from diffusion.respace import SpacedDiffusion, space_timesteps
 

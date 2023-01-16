@@ -28,8 +28,15 @@ class H36M_Dataset(Dataset):
             'test': 2
         }
         assert num_frames == 60, "for debugging let's leave 60 frames with 30 and 30 for inp and out"
+
+        # *Luca input_n is used only for test
         input_n = 30
-        output_n = 60
+        # *Luca output_n is never used
+        output_n = 30
+
+        # !Luca: added a variable as motion_conditioning (could eventually become an argument)
+        frames_to_condition = 30
+        
         self.path_to_data = data_dir
         self.split = split
         self.split_n = split_dict[split]
@@ -38,7 +45,8 @@ class H36M_Dataset(Dataset):
         self.sample_rate = 2
         self.p3d = {}
         self.data_idx = []
-        self.num_frames = num_frames + 30
+
+        self.num_frames = num_frames + frames_to_condition
         subs = [[1, 6, 7, 8, 9], [11], [5]]
         # acts = data_utils.define_actions(actions)
         if actions is None:
@@ -67,6 +75,8 @@ class H36M_Dataset(Dataset):
             for action_idx in np.arange(len(acts)):
                 action = acts[action_idx]
                 self.act_dict[action_idx] = action
+
+                # !*Luca If split is train or val, we use enter the if statement
                 if self.split_n <= 1:
                     for subact in [1, 2]:  # subactions
                         #print("Reading subject {0}, action {1}, subaction {2}".format(subj, action, subact))
@@ -88,6 +98,8 @@ class H36M_Dataset(Dataset):
                         # tmp_data_idx_1 = [(subj, action, subact)] * len(valid_frames)
                         tmp_data_idx_1 = [key] * len(valid_frames)
                         tmp_data_idx_2 = list(valid_frames)
+                        
+                        # !Luca: added from Guido's last commit
                         act_idx_3 = [action_idx] * len(valid_frames)
                         # self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2))
                         self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, act_idx_3)) # ASSOCIATE MOTION TO THE ACTION (prev line is original)
@@ -153,7 +165,12 @@ class H36M_Dataset(Dataset):
     def __getitem__(self, item):
         # key, start_frame = self.data_idx[item] # ORIGINAL
         key, start_frame, action_idx = self.data_idx[item] # TO RETRIEVE THE ACTION
-        fs = np.arange(start_frame, start_frame + self.in_n + self.out_n)
+
+        # !Luca: added a variable as motion_conditioning (could eventually become an argument)
+        frames_to_condition = 30
+        fs = np.arange(start_frame, start_frame + self.in_n + self.out_n + frames_to_condition)
+        
+        
         motion = self.p3d[key][fs]
         motion = motion[:, self.dimensions_to_use]
         motion = motion.reshape(motion.shape[0], 3, motion.shape[1]//3)
@@ -162,7 +179,11 @@ class H36M_Dataset(Dataset):
         output = {} # Dict for {mask, length, action, action_text}
         act_idx = torch.tensor(action_idx) # action
         action = self.act_dict[action_idx] # action_text
-        output['inp'] = motion
+
+        # !Luca: added a variable as motion_conditioning (could eventually become an argument)
+        output['inp'] = motion[:, :, frames_to_condition:] # !Luca: second 60 frames
+        output['motion_condition'] = motion[:, :, :frames_to_condition] # !Luca: first 30 frames
+
         output['action'] = act_idx
         output['action_text'] = action
         #print (self.p3d[key][fs].shape)
