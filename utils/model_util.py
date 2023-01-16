@@ -1,6 +1,6 @@
 # from model.mdm import MDM
 # !Luca: commented out for motion_condition_batch
-from model.mdm_w_motion import MDM
+# from model.mdm_w_motion import MDM
 
 
 
@@ -15,6 +15,10 @@ def load_model_wo_clip(model, state_dict):
 
 
 def create_model_and_diffusion(args, data):
+    if args.condition == "motion":
+        from model.mdm_w_motion import MDM
+    else:
+        from model.mdm import MDM
     model = MDM(**get_model_args(args, data))
     diffusion = create_gaussian_diffusion(args)
     return model, diffusion
