@@ -49,7 +49,7 @@ class WandbPlatform(TrainPlatform):
     def __init__(self, save_dir):
         name = os.path.split(save_dir)[-1]
         self.project_name = "motion_diffusion"
-        self.group = "exp_group"
+        self.group = "guido_exp"
         self.entity = "pinlab-sapienza"
         self.name = name
         wb.init(
