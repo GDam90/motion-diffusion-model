@@ -55,12 +55,17 @@ def collate(batch):
         textbatch = [b['tokens'] for b in notnone_batches]
         cond['y'].update({'tokens': textbatch})
 
-    if 'action' in notnone_batches[0]:
-        actionbatch = [b['action'] for b in notnone_batches]
-        cond['y'].update({'action': torch.as_tensor(actionbatch).unsqueeze(1)})
+    if 'motion_condition' in notnone_batches[0]:
         # !Luca: added for motion_condition_batch
         cond['y'].update({'motion_condition': motion_condition_batchTensor})
         cond['y'].update({'motion_condition_lengths': motion_condition_lenbatchTensor})
+
+    if 'action' in notnone_batches[0]:
+        actionbatch = [b['action'] for b in notnone_batches]
+        cond['y'].update({'action': torch.as_tensor(actionbatch).unsqueeze(1)})
+
+        # remove 
+
 
     # collate action textual names
     if 'action_text' in notnone_batches[0]:
