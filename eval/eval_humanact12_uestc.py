@@ -2,6 +2,10 @@
 Generate a large batch of image samples from a model and save them as a large
 numpy array. This can be used to produce samples for FID evaluation.
 """
+
+import sys
+sys.path.append("/media/hdd/guide/motion-diffusion-model")
+
 import os
 import torch
 import re
@@ -32,6 +36,9 @@ def evaluate(args, model, diffusion, data):
         eval_results = evaluate(args, model, diffusion, data)
     elif args.dataset == "uestc":
         from eval.a2m.stgcn_eval import evaluate
+        eval_results = evaluate(args, model, diffusion, data)
+    elif args.dataset == "h36m":
+        from eval.p2m.pose2motion_evaluate import evaluate  # [TODO]
         eval_results = evaluate(args, model, diffusion, data)
     else:
         raise NotImplementedError("This dataset is not supported.")
@@ -66,7 +73,9 @@ def main():
 
     print("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(args, data_loader)
-
+    args.cond_mode = model.cond_mode # [ADDED TO FIX A BUG]
+    
+    
     print(f"Loading checkpoints from [{args.model_path}]...")
     state_dict = torch.load(args.model_path, map_location='cpu')
     load_model_wo_clip(model, state_dict)

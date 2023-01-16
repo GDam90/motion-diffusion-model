@@ -29,7 +29,7 @@ class H36M_Dataset(Dataset):
         }
         assert num_frames == 60, "for debugging let's leave 60 frames with 30 and 30 for inp and out"
         input_n = 30
-        output_n = 30
+        output_n = 60
         self.path_to_data = data_dir
         self.split = split
         self.split_n = split_dict[split]
@@ -38,7 +38,7 @@ class H36M_Dataset(Dataset):
         self.sample_rate = 2
         self.p3d = {}
         self.data_idx = []
-        self.num_frames = num_frames
+        self.num_frames = num_frames + 30
         subs = [[1, 6, 7, 8, 9], [11], [5]]
         # acts = data_utils.define_actions(actions)
         if actions is None:

@@ -88,7 +88,7 @@ def evaluate(args, model, diffusion, data):
     torch.multiprocessing.set_sharing_strategy('file_system')
 
     bs = args.batch_size
-    args.num_classes = 40
+    args.num_classes = 40 # [NUMBER OF ACTIONS]
     args.nfeats = 6
     args.njoint = 25
     device = dist_util.dev()
@@ -130,7 +130,7 @@ def evaluate(args, model, diffusion, data):
                               for data in datasetGT[key]]
                         for key in data_types}
 
-        new_data_loader = functools.partial(NewDataloader, model=model, diffusion=diffusion, device=device,
+        new_data_loader = functools.partial(NewDataloader, model=model, diffusion=diffusion, device=device, # [PARTIAL FIX SOME ARGUMENTS]
                                             cond_mode=args.cond_mode, dataset=args.dataset, num_samples=args.num_samples)
         gtLoaders = {key: new_data_loader(mode="gt", dataiterator=dataiterator[key][0])
                      for key in ["train", "test"]}
