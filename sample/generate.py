@@ -3,6 +3,10 @@
 Generate a large batch of image samples from a model and save them as a large
 numpy array. This can be used to produce samples for FID evaluation.
 """
+
+import sys
+sys.path.append("/media/hdd/guide/motion-diffusion-model")
+
 from utils.fixseed import fixseed
 import os
 import numpy as np
@@ -169,7 +173,7 @@ def main():
         fw.write('\n'.join([str(l) for l in all_lengths]))
 
     print(f"saving visualizations to [{out_path}]...")
-    skeleton = paramUtil.kit_kinematic_chain if args.dataset == 'kit' else paramUtil.t2m_kinematic_chain
+    skeleton = paramUtil.kit_kinematic_chain if args.dataset == 'kit' else paramUtil.t2m_kinematic_chain # RECREATE THE SKELETON
 
     sample_files = []
     num_samples_in_out_file = 7

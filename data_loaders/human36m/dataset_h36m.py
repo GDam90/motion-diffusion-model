@@ -131,12 +131,14 @@ class H36M_Dataset(Dataset):
                     valid_frames = fs_sel1[:, 0]
                     tmp_data_idx_1 = [key] * len(valid_frames)
                     tmp_data_idx_2 = list(valid_frames)
-                    self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2)) # TODO ADD ACTION IF NEEDED
+                    act_idx_3 = [action_idx] * len(valid_frames)
+                    self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, act_idx_3)) # ASSOCIATE MOTION TO THE ACTION (prev line is original)
 
                     valid_frames = fs_sel2[:, 0]
                     tmp_data_idx_1 = [key + 1] * len(valid_frames)
                     tmp_data_idx_2 = list(valid_frames)
-                    self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2)) # TODO ADD ACTION IF NEEDED
+                    act_idx_3 = [action_idx] * len(valid_frames)
+                    self.data_idx.extend(zip(tmp_data_idx_1, tmp_data_idx_2, act_idx_3)) # ASSOCIATE MOTION TO THE ACTION (prev line is original)
                     key += 2
 
         assert self.num_actions == len(self.act_dict)
