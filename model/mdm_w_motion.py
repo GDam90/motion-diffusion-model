@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/media/hdd/luca_s/code/DDPMotion/motion-diffusion-model')
+sys.path.append('/media/hdd/guide/motion-diffusion-model')
 
 import numpy as np
 import torch
