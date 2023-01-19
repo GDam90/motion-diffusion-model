@@ -26,14 +26,16 @@ def collate(batch):
     databatch = [b['inp'] for b in notnone_batches]
 
     # !Luca: motion_condition_batch is a list with the input motion condition
-    motion_condition_batch = [b['motion_condition'] for b in notnone_batches]
+    if 'motion_condition' in notnone_batches[0]:
+        motion_condition_batch = [b['motion_condition'] for b in notnone_batches]
 
     if 'lengths' in notnone_batches[0]:
         lenbatch = [b['lengths'] for b in notnone_batches]
     else:
         lenbatch = [len(b['inp'][0][0]) for b in notnone_batches] # [joints, channels, timesteps]
         # !Luca: added for motion_condition_batch
-        motion_condition_lenbatch = [len(b['motion_condition'][0][0]) for b in notnone_batches]
+        if 'motion_condition' in notnone_batches[0]:
+            motion_condition_lenbatch = [len(b['motion_condition'][0][0]) for b in notnone_batches]
 
 
     databatchTensor = collate_tensors(databatch)
@@ -41,8 +43,9 @@ def collate(batch):
     maskbatchTensor = lengths_to_mask(lenbatchTensor, databatchTensor.shape[-1]).unsqueeze(1).unsqueeze(1) # unqueeze for broadcasting
 
     # !Luca: added for motion_condition_batch
-    motion_condition_batchTensor = collate_tensors(motion_condition_batch)
-    motion_condition_lenbatchTensor = torch.as_tensor(motion_condition_lenbatch)
+    if 'motion_condition' in notnone_batches[0]:
+        motion_condition_batchTensor = collate_tensors(motion_condition_batch)
+        motion_condition_lenbatchTensor = torch.as_tensor(motion_condition_lenbatch)
 
     motion = databatchTensor
     cond = {'y': {'mask': maskbatchTensor, 'lengths': lenbatchTensor}}
