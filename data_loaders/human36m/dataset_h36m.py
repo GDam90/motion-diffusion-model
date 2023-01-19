@@ -60,9 +60,9 @@ class H36M_Dataset(Dataset):
         # subs = np.array([[1], [11], [5]])
         # acts = ['walking']
         # 32 human3.6 joint name:
-        joint_names = ["Hips", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "Site", "LeftUpLeg", "LeftLeg",
+        joint_names = ["Hips", "RightUpLeg", "RightKnee", "RightFoot", "_RightToeBase", "_Site", "LeftUpLeg", "LeftKnee",
                       "LeftFoot",
-                      "LeftToeBase", "Site", "Spine", "Spine1", "Neck", "Head", "Site", "LeftShoulder", "LeftArm",
+                      "_LeftToeBase", "_Site", "_Spine", "Spine1", "Neck", "Head", "Site", "LeftShoulder", "LeftArm",
                       "LeftForeArm",
                       "LeftHand", "LeftHandThumb", "Site", "L_Wrist_End", "Site", "RightShoulder", "RightArm",
                       "RightForeArm",

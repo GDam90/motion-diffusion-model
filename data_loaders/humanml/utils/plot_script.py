@@ -62,7 +62,9 @@ def plot_3d_motion(save_path, kinematic_tree, joints, title, dataset, figsize=(3
         data *= 1.3  # scale for visualization
     elif dataset in ['humanact12', 'uestc']:
         data *= -1.5 # reverse axes, scale for visualization
-
+    elif dataset == 'h36m':
+         data *= 0.001  # scale for visualization
+    
     fig = plt.figure(figsize=figsize)
     plt.tight_layout()
     ax = p3.Axes3D(fig)
@@ -97,8 +99,9 @@ def plot_3d_motion(save_path, kinematic_tree, joints, title, dataset, figsize=(3
         ax.view_init(elev=120, azim=-90)
         ax.dist = 7.5
         #         ax =
-        plot_xzPlane(MINS[0] - trajec[index, 0], MAXS[0] - trajec[index, 0], 0, MINS[2] - trajec[index, 1],
-                     MAXS[2] - trajec[index, 1])
+        # plot_xzPlane(MINS[0] - trajec[index, 0], MAXS[0] - trajec[index, 0], 0, MINS[2] - trajec[index, 1],
+        #              MAXS[2] - trajec[index, 1])
+        plot_xzPlane(MINS[0], MAXS[0], 0, MINS[2], MAXS[2])
         #         ax.scatter(dataset[index, :22, 0], dataset[index, :22, 1], dataset[index, :22, 2], color='black', s=3)
 
         # if index > 1:
@@ -125,7 +128,8 @@ def plot_3d_motion(save_path, kinematic_tree, joints, title, dataset, figsize=(3
     ani = FuncAnimation(fig, update, frames=frame_number, interval=1000 / fps, repeat=False)
 
     # writer = FFMpegFileWriter(fps=fps)
-    ani.save(save_path, fps=fps)
+    ani.save(save_path, fps=fps, writer='pillow')
+    # ani.save(save_path[:-4] + ".gif", fps=fps, writer='pillow')
     # ani = FuncAnimation(fig, update, frames=frame_number, interval=1000 / fps, repeat=False, init_func=init)
     # ani.save(save_path, writer='pillow', fps=1000 / fps)
 

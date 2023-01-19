@@ -174,6 +174,8 @@ def main():
 
     print(f"saving visualizations to [{out_path}]...")
     skeleton = paramUtil.kit_kinematic_chain if args.dataset == 'kit' else paramUtil.t2m_kinematic_chain # RECREATE THE SKELETON
+    if args.dataset == 'h36m':
+        skeleton = paramUtil.h36m_kinematic_chain
 
     sample_files = []
     num_samples_in_out_file = 7
@@ -213,7 +215,7 @@ def save_multiple_samples(args, out_path, row_print_template, all_print_template
     print(row_print_template.format(caption, sample_i, all_rep_save_file))
     sample_files.append(all_rep_save_path)
     if (sample_i + 1) % num_samples_in_out_file == 0 or sample_i + 1 == args.num_samples:
-        # all_sample_save_file =  f'samples_{(sample_i - len(sample_files) + 1):02d}_to_{sample_i:02d}.mp4'
+        # all_sample_save_file =  f'samples_{(sample_i - len(sample_files) + 1):02d}_to_{sample_i:02d}.gif'
         all_sample_save_file = all_file_template.format(sample_i - len(sample_files) + 1, sample_i)
         all_sample_save_path = os.path.join(out_path, all_sample_save_file)
         print(all_print_template.format(sample_i - len(sample_files) + 1, sample_i, all_sample_save_file))
@@ -227,17 +229,20 @@ def save_multiple_samples(args, out_path, row_print_template, all_print_template
 
 
 def construct_template_variables(unconstrained):
-    row_file_template = 'sample{:02d}.mp4'
-    all_file_template = 'samples_{:02d}_to_{:02d}.mp4'
+    '''
+    Changed from mp4 ext to gif.
+    '''
+    row_file_template = 'sample{:02d}.gif'
+    all_file_template = 'samples_{:02d}_to_{:02d}.gif'
     if unconstrained:
-        sample_file_template = 'row{:02d}_col{:02d}.mp4'
+        sample_file_template = 'row{:02d}_col{:02d}.gif'
         sample_print_template = '[{} row #{:02d} column #{:02d} | -> {}]'
         row_file_template = row_file_template.replace('sample', 'row')
         row_print_template = '[{} row #{:02d} | all columns | -> {}]'
         all_file_template = all_file_template.replace('samples', 'rows')
         all_print_template = '[rows {:02d} to {:02d} | -> {}]'
     else:
-        sample_file_template = 'sample{:02d}_rep{:02d}.mp4'
+        sample_file_template = 'sample{:02d}_rep{:02d}.gif'
         sample_print_template = '["{}" ({:02d}) | Rep #{:02d} | -> {}]'
         row_print_template = '[ "{}" ({:02d}) | all repetitions | -> {}]'
         all_print_template = '[samples {:02d} to {:02d} | all repetitions | -> {}]'
