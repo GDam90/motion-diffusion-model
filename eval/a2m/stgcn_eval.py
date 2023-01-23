@@ -98,7 +98,7 @@ def evaluate(args, model, diffusion, data):
     recogparameters["pose_rep"] = "rot6d"
     recogparameters["nfeats"] = 6
 
-    # Action2motionEvaluation
+    # Action2motionEvaluation @ DEVO FARE UNA CLASSE MPJPEEvaluator che implementi le metriche che mi servono
     stgcnevaluation = STGCNEvaluation(args.dataset, recogparameters, device)
 
     stgcn_metrics = {}
