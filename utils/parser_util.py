@@ -62,7 +62,8 @@ def add_base_options(parser):
     group.add_argument("--seed", default=10, type=int, help="For fixing random seed.")
     group.add_argument("--batch_size", default=64, type=int, help="Batch size during training.")
     group.add_argument("--condition", default="", type=str, choices=["", "motion"], help="The form of conditioning ('' for text, act and unconstrained, 'motion')")
-
+    group.add_argument("--n_frames", default=60, type=int,
+                       help="Limit for the maximal number of frames. In HumanML3D and KIT this field is ignored.")
 
 def add_diffusion_options(parser):
     group = parser.add_argument_group('diffusion')
