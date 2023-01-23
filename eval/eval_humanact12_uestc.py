@@ -12,7 +12,7 @@ import re
 
 from utils import dist_util
 from model.cfg_sampler import ClassifierFreeSampleModel
-from data_loaders.get_data import get_dataset_loader
+from data_loaders.get_data import get_dataset_loader, get_h36m_test_sets
 from eval.a2m.tools import save_metrics
 from utils.parser_util import evaluation_parser
 from utils.fixseed import fixseed
@@ -38,8 +38,8 @@ def evaluate(args, model, diffusion, data):
         from eval.a2m.stgcn_eval import evaluate
         eval_results = evaluate(args, model, diffusion, data)
     elif args.dataset == "h36m":
-        from eval.p2m.pose2motion_evaluate import evaluate  # [TODO]
-        eval_results = evaluate(args, model, diffusion, data)
+        from eval.p2m.pose2motion_evaluate import evaluate_copy_from_stgcneval  # [TODO]
+        eval_results = evaluate_copy_from_stgcneval(args, model, diffusion, data)
     else:
         raise NotImplementedError("This dataset is not supported.")
 
@@ -69,8 +69,11 @@ def main():
         args.num_samples = 1000
         args.num_seeds = 20
 
-    data_loader = get_dataset_loader(name=args.dataset, num_frames=60, batch_size=args.batch_size,)
-
+    if args.dataset == 'h36m':
+        data_loader = get_h36m_test_sets(num_frames=60, act='phoning')['phoning']
+    else:
+        data_loader = get_dataset_loader(name=args.dataset, num_frames=60, batch_size=args.batch_size,)
+    
     print("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(args, data_loader)
     args.cond_mode = model.cond_mode # [ADDED TO FIX A BUG]
