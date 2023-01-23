@@ -53,3 +53,38 @@ def get_dataset_loader(name, batch_size, num_frames, split='train', hml_mode='tr
     )
 
     return loader
+
+def get_h36m_test_sets(num_frames, act=None, datasets=False):
+    '''
+    return a dict of datasets, indexed with action names.
+    '''
+    from data_loaders.human36m.dataset_h36m import H36M_Dataset_test
+    dataset = H36M_Dataset_test
+    collate = all_collate
+    testloaders = {}
+    actions = ["walking", "eating", "smoking", "discussion", "directions",
+               "greeting", "phoning", "posing", "purchases", "sitting",
+               "sittingdown", "takingphoto", "waiting", "walkingdog",
+               "walkingtogether"]
+    if act in actions:
+        single_dataset = dataset(split='test', num_frames=num_frames, actions=[act])
+        if datasets:
+            return {act: single_dataset}
+        loader = DataLoader(
+        single_dataset, batch_size=256, shuffle=True,
+        num_workers=8, drop_last=True, collate_fn=collate)
+        return {act: loader}
+        
+    
+    for action in actions:
+        tmp_dataset = dataset(split='test', num_frames=num_frames, actions=[action])
+        if datasets:
+            testloaders.update({action: tmp_dataset})
+        else:
+            loader = DataLoader(
+            tmp_dataset, batch_size=256, shuffle=True,
+            num_workers=4, drop_last=True, collate_fn=collate
+        )
+            testloaders.update({action: loader})
+        
+    return testloaders
