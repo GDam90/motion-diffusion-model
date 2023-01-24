@@ -44,13 +44,21 @@ class MPJPEEvaluator:
         '''
         convert 22joints motion tensor in standard 32joints for visualization
         '''
-        standard_shape = [self.batch_size, self.num_frames, self.channels, self.h36m_standard_joints]
+        # standard_shape = [self.batch_size, self.num_frames, self.channels, self.h36m_standard_joints]
+        standard_shape = [self.batch_size, self.num_frames, self.h36m_standard_joints, self.channels]
         new_motion = torch.zeros(standard_shape).to(self.device)
-        x = motion_batch.permute(0, 3, 2, 1)
-        new_motion[:, :, :, self.dim_used] = x
-        new_motion[:, :, :, self.joint_to_ignore] = new_motion[:, :, :, self.joint_equal]
-        if for_viz:
-            new_motion = new_motion.permute(0, 1, 3, 2)
+        x = motion_batch.permute(0, 3, 1, 2)
+        new_motion[:, :, self.dim_used] = x
+        new_motion[:, :, self.joint_to_ignore] = new_motion[:, :, self.joint_equal]
+        
+        #### TEST ####
+        # x = motion_batch.clone()
+        # new_motion[:, :, self.dim_used] = x
+        # new_motion[:, :, self.joint_to_ignore] = new_motion[:, :, self.joint_equal]
+        ##############
+        
+        # if for_viz:
+        #     new_motion = new_motion.permute(0, 1, 3, 2)
         return new_motion
         
         
@@ -95,8 +103,9 @@ class MPJPEEvaluator:
                 print(f"MPJPE/MEAN/{self.testing_frames[c]} : {error_mean_all_actions[c]}")
 
             return errors_per_action_at_frame, error_mean_all_actions
-        
+
     def _init_plot(self):
+
         fig = plt.figure()
         ax = Axes3D(fig) # , auto_add_to_figure=False)
         fig.add_axes(ax)
@@ -119,19 +128,19 @@ class MPJPEEvaluator:
         return fig, ax
     
     def create_pose(self, ax, plots, vals, pred=True, update=False):
-        connect = [
-				(15,14), (14,13), (13,25), (25,26), (26,27), (27,29), (27,30),
-				(13,17), (17,18), (18,19), (19,22), (19,21), (13,12), (12,7), (7,8),
-				(8,10), (8,9), (12,2), (2,3), (3,4), (3,5)]
         # connect = [
-        #     (1, 2), (2, 3), (3, 4), (4, 5),
-        #     (6, 7), (7, 8), (8, 9), (9, 10),
-        #     (0, 1), (0, 6),
-        #     (6, 17), (17, 18), (18, 19), (19, 20), (20, 21), (21, 22),
-        #     (1, 25), (25, 26), (26, 27), (27, 28), (28, 29), (29, 30),
-        #     (24, 25), (24, 17),
-        #     (24, 14), (14, 15)
-    # ]
+		# 		(15,14), (14,13), (13,25), (25,26), (26,27), (27,29), (27,30),
+		# 		(13,17), (17,18), (18,19), (19,22), (19,21), (13,12), (12,7), (7,8),
+		# 		(8,10), (8,9), (12,2), (2,3), (3,4), (3,5)]
+        connect = [
+            (1, 2), (2, 3), (3, 4), (4, 5),
+            (6, 7), (7, 8), (8, 9), (9, 10),
+            (0, 1), (0, 6),
+            (6, 17), (17, 18), (18, 19), (19, 20), (20, 21), (21, 22),
+            (1, 25), (25, 26), (26, 27), (27, 28), (28, 29), (29, 30),
+            (24, 25), (24, 17),
+            (24, 14), (14, 15)
+    ]
         
         LR = [
             False, True, True, True, True,
@@ -192,7 +201,7 @@ class MPJPEEvaluator:
         #ax.set_title('pose at time frame: '+str(num))
         #ax.set_aspect('equal')
     
-        return plots_gt,plots_pred
+        return plots_gt, plots_pred
     
     def visualize(self, batch_gt, batch_gen):
         # h36 shaped motions
@@ -226,7 +235,7 @@ class MPJPEEvaluator:
         viz_path = os.path.join(self.path, "viz")
         os.makedirs(viz_path, exist_ok=True)
         line_anim = animation.FuncAnimation(figure, funcupdate, nframes, fargs=fargs, interval=70, blit=False)
-        line_anim.save(os.path.join(viz_path, 'animation1.gif'),  fps=25, writer='pillow')
+        line_anim.save(os.path.join(viz_path, 'animation_new.gif'),  fps=25, writer='pillow')
         plt.close()
         return
         
