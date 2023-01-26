@@ -61,7 +61,7 @@ def add_base_options(parser):
     group.add_argument("--device", default=0, type=int, help="Device id to use.")
     group.add_argument("--seed", default=10, type=int, help="For fixing random seed.")
     group.add_argument("--batch_size", default=64, type=int, help="Batch size during training.")
-    group.add_argument("--condition", default="", type=str, choices=["", "motion"], help="The form of conditioning ('' for text, act and unconstrained, 'motion')")
+    group.add_argument("--condition", default="", type=str, choices=["", "motion"], help="The form of conditioning ('' for text, act and unconstrained, 'motion')") # 
     group.add_argument("--n_frames", default=60, type=int,
                        help="Limit for the maximal number of frames. In HumanML3D and KIT this field is ignored.")
 
@@ -203,6 +203,15 @@ def add_evaluation_options(parser):
                        help="For classifier-free sampling - specifies the s parameter, as defined in the paper.")
 
 
+def add_motion_encoder_options(parser):
+    group = parser.add_argument_group('motion_enc')
+    group.add_argument("--enc_type", default='sts', type=str, choices=['MLP', 'sts'],
+                       help="Motion encoder model")
+    group.add_argument("--cond_frames", default=30, type=int,
+                       help="Numbers of conditioning frames")
+    group.add_argument("--hidden_dim", default=32, type=int,
+                       help="Numbers of features in the last encoder layer")
+
 def train_args():
     parser = ArgumentParser()
     add_base_options(parser)
@@ -210,6 +219,8 @@ def train_args():
     add_model_options(parser)
     add_diffusion_options(parser)
     add_training_options(parser)
+    # For condition encoding:
+    add_motion_encoder_options(parser)
     return parser.parse_args()
 
 
