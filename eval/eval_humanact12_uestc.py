@@ -67,10 +67,10 @@ def main():
         args.num_seeds = 2
     else:
         args.num_samples = 1000
-        args.num_seeds = 20
+        args.num_seeds = 2
 
     if args.dataset == 'h36m':
-        data_loader = get_h36m_test_sets(num_frames=60, act='phoning')['phoning']
+        data_loader = get_h36m_test_sets(num_frames=60, act='phoning')['phoning'] # It serves only as a prototype
     else:
         data_loader = get_dataset_loader(name=args.dataset, num_frames=60, batch_size=args.batch_size,)
     
@@ -84,9 +84,9 @@ def main():
     load_model_wo_clip(model, state_dict)
 
     eval_results = evaluate(args, model, diffusion, data_loader.dataset)
-
-    fid_to_print = {k : sum([float(vv) for vv in v])/len(v) for k, v in eval_results['feats'].items() if 'fid' in k and 'gen' in k}
-    print(fid_to_print)
+    if not args.dataset == 'h36m':
+        fid_to_print = {k : sum([float(vv) for vv in v])/len(v) for k, v in eval_results['feats'].items() if 'fid' in k and 'gen' in k}
+        print(fid_to_print)
 
 if __name__ == '__main__':
     main()
