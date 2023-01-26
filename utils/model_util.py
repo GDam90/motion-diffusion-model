@@ -60,7 +60,7 @@ def get_model_args(args, data):
         nfeats = 3
     
     modeltype = ''
-    translation = True
+    translation = False if args.dataset == "h36m" else True # True # Cambio a False altrimenti ha impatto sul tensore di input in
     glob = True
     glob_rot = True
     dropout = 0.1
