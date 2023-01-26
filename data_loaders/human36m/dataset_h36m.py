@@ -173,9 +173,10 @@ class H36M_Dataset(Dataset):
         
         motion = self.p3d[key][fs]
         motion = motion[:, self.dimensions_to_use]
-        # motion = motion.reshape(motion.shape[0], 3, motion.shape[1]//3)
+        # motion = motion.reshape(motion.shape[0], 3, motion.shape[1]//3) # !! BAD OPERATION !!
         # motion = motion.transpose(2,1,0)
         motion = motion.reshape(motion.shape[0], motion.shape[1]//3, 3)
+        motion = motion.transpose(1, 2, 0)
         motion = torch.tensor(motion)
         output = {} # Dict for {mask, length, action, action_text}
         act_idx = torch.tensor(action_idx) # action
