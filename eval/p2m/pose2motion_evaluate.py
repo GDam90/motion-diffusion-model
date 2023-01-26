@@ -67,10 +67,13 @@ class MPJPEEvaluator:
         error_mean_all_actions = torch.zeros(len(self.testing_frames)).to(self.device)
         
         ########## DEBUGGING #########
-        loaders_ = {'gt': loaders, 'gen': loaders}
-        loaders = loaders_
+        # loaders_ = {'gt': loaders['gt'], 'gen': loaders['gen']}
+        # loaders_ = {'gt': loaders, 'gen': loaders}
+        # loaders = loaders_
         ##############################
+        MPJPE_errs = {}
         for action in self.actions:
+            MPJPE_errs.update({action : {}})
             action_gt_loader = loaders["gt"][action]
             action_gen_loader = loaders["gen"][action]
             
@@ -78,6 +81,8 @@ class MPJPEEvaluator:
             assert len(action_gt_loader) == len(action_gen_loader) == 1, "a single batch with 250 samples should be provided during test"
             gt_motion = next(iter(action_gt_loader))['output_xyz'] # [bs, njoints, channel, nframes]
             gen_motion = next(iter(action_gen_loader))['output_xyz'] # [bs, njoints, channel, nframes]
+            
+            self.visualize(batch_gt=gt_motion, batch_gen=gen_motion, action=action)
             gt_motion = gt_motion.permute(0, 3, 1, 2) # [bs, nframes, njoints, channels]
             gen_motion = gen_motion.permute(0, 3, 1, 2) # [bs, nframes, njoints, channels]
             
@@ -95,14 +100,20 @@ class MPJPEEvaluator:
                 errors_per_action_at_frame = torch.sum(torch.mean(torch.norm(gt_motion[:, self.testing_frames] - gen_motion[:, self.testing_frames], dim=3), dim=2), dim=0)
                 error_mean_all_actions += errors_per_action_at_frame
                 errors_per_action_at_frame /= self.batch_size
+                # MPJPE_errs.update({action: errors_per_action_at_frame})
                 for c in range(len(self.testing_frames)):
+                    MPJPE_errs[action].update({str(self.testing_frames[c]) : str(errors_per_action_at_frame[c])})
                     print(f"MPJPE/{action}/{self.testing_frames[c]} : {errors_per_action_at_frame[c]}")
-                
-            error_mean_all_actions /= self.num_classes * self.batch_size
-            for c in range(len(self.testing_frames)):
-                print(f"MPJPE/MEAN/{self.testing_frames[c]} : {error_mean_all_actions[c]}")
+            
+        assert len(MPJPE_errs) == len(self.actions)
+        error_mean_all_actions /= self.num_classes * self.batch_size
+        # MPJPE_errs.update({"mean" : error_mean_all_actions})
+        MPJPE_errs.update({"mean" : {}})
+        for c in range(len(self.testing_frames)):
+            MPJPE_errs["mean"].update({str(self.testing_frames[c]) : str(error_mean_all_actions[c])})
+            print(f"MPJPE/MEAN/{self.testing_frames[c]} : {error_mean_all_actions[c]}")
 
-            return errors_per_action_at_frame, error_mean_all_actions
+        return MPJPE_errs
 
     def _init_plot(self):
 
@@ -170,7 +181,7 @@ class MPJPEEvaluator:
             if not update:
 
                 if i ==0:
-                    plots.append(ax.plot(x, y, z, lw=2,linestyle='--' ,c=lcolor if LR[i] else rcolor,label=['GT' if not pred else 'Pred']))
+                    plots.append(ax.plot(x, y, z, lw=2,linestyle='--' if not pred else '-',c=lcolor if LR[i] else rcolor,label=['GT' if not pred else 'Pred']))
                 else:
                     plots.append(ax.plot(x, y, z, lw=2,linestyle='--', c=lcolor if LR[i] else rcolor))
 
@@ -203,14 +214,15 @@ class MPJPEEvaluator:
     
         return plots_gt, plots_pred
     
-    def visualize(self, batch_gt, batch_gen):
+    def visualize(self, batch_gt, batch_gen, action):
         # h36 shaped motions
         scale = 0.001
         gt = self._h36m_format(batch_gt, for_viz=True) * scale
         gen = self._h36m_format(batch_gen, for_viz=True) * scale
         
-        data_gt = gt[0].cpu().data.numpy()
-        data_gen = gen[0].cpu().data.numpy()
+        idx = np.random.randint(gt.shape[0])
+        data_gt = gt[idx].cpu().data.numpy()
+        data_gen = gen[idx].cpu().data.numpy()
         
         fig, ax = self._init_plot()
         gt_plots=[]
@@ -228,14 +240,14 @@ class MPJPEEvaluator:
             ax
         )
         
-        self.save_animation(fig, self.update, self.num_frames, fargs)
-        pass
+        self.save_animation(fig, self.update, self.num_frames, fargs, action, idx)
+        return
     
-    def save_animation(self, figure, funcupdate, nframes, fargs):
-        viz_path = os.path.join(self.path, "viz")
+    def save_animation(self, figure, funcupdate, nframes, fargs, action, idx):
+        viz_path = os.path.join(self.path, "viz", action)
         os.makedirs(viz_path, exist_ok=True)
         line_anim = animation.FuncAnimation(figure, funcupdate, nframes, fargs=fargs, interval=70, blit=False)
-        line_anim.save(os.path.join(viz_path, 'animation_new.gif'),  fps=25, writer='pillow')
+        line_anim.save(os.path.join(viz_path, f'animation_{idx}.gif'),  fps=25, writer='pillow')
         plt.close()
         return
         
@@ -278,12 +290,14 @@ def evaluate_copy_from_stgcneval(args, model, diffusion, data):
                                         cond_mode=args.cond_mode, dataset=args.dataset, num_samples=args.num_samples)
         gtLoaders = {key: new_data_loader(mode="gt", dataiterator=dataiterator[key][0], action=key)
                     for key in data_types}
-        batch_gt = next(iter(gtLoaders['walking']))['output_xyz']
-        batch_gen = batch_gt.clone()
         
-        mpjpevaluation.visualize(batch_gt=batch_gt, batch_gen=batch_gen)
+        # batch_gt = next(iter(gtLoaders['walking']))['output_xyz']
+        # batch_gen = batch_gt.clone()
         
-        mpjpe_metrics[seed] = mpjpevaluation.evaluate(gtLoaders) ##########
+        # mpjpevaluation.visualize(batch_gt=batch_gt, batch_gen=batch_gen)
+        
+        # mpjpe_metrics[seed] = mpjpevaluation.evaluate(gtLoaders) ##########
+        
         genLoaders = {key: new_data_loader(mode="gen", dataiterator=dataiterator[key][0], action=key)
                       for key in data_types}  
         
@@ -291,3 +305,5 @@ def evaluate_copy_from_stgcneval(args, model, diffusion, data):
                    "gt": gtLoaders}
 
         mpjpe_metrics[seed] = mpjpevaluation.evaluate(loaders)
+        
+    return mpjpe_metrics
