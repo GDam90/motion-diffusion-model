@@ -14,7 +14,7 @@ class MDM(nn.Module):
     def __init__(self, modeltype, njoints, nfeats, num_actions, translation, pose_rep, glob, glob_rot,
                  latent_dim=256, ff_size=1024, num_layers=8, num_heads=4, dropout=0.1,
                  ablation=None, activation="gelu", legacy=False, data_rep='rot6d', dataset='amass', clip_dim=512,
-                 arch='trans_enc', emb_trans_dec=False, clip_version=None, **kargs):
+                 arch='trans_enc', emb_trans_dec=False, clip_version=None, condition='motion', **kargs):
         super().__init__()
 
         # !Luca: change this pecionata asap
@@ -51,6 +51,10 @@ class MDM(nn.Module):
         self.normalize_output = kargs.get('normalize_encoder_output', False)
 
         self.cond_mode = kargs.get('cond_mode', 'no_cond')
+        self.enc_type = kargs.get('enc_type', None)
+        self.cond_frames = kargs.get('cond_frames', None)
+        self.hidden_dim = kargs.get('hidden_dim', None)
+
         self.cond_mask_prob = kargs.get('cond_mask_prob', 0.)
         self.arch = arch
         self.gru_emb_dim = self.latent_dim if self.arch == 'gru' else 0
@@ -93,6 +97,7 @@ class MDM(nn.Module):
                 print('Loading CLIP...')
                 self.clip_version = clip_version
                 self.clip_model = self.load_and_freeze_clip(clip_version)
+            
             if 'action' in self.cond_mode:
 
                 # !Luca: added this for now, change later
@@ -105,7 +110,12 @@ class MDM(nn.Module):
 
                 
             if 'motion' in self.cond_mode:
-                self.embed_motion = EmbedMotion(self.latent_dim)
+                if self.enc_type == 'MLP':
+                    from external_models.motion_encoders.MLP import MLP_encoder
+                    self.embed_motion = MLP_encoder(self.njoints * self.nfeats * self.cond_frames , self.latent_dim)
+                elif self.enc_type == 'sts':
+                    from external_models.motion_encoders.stsgcn import STS_Encoder
+                    self.embed_motion = STS_Encoder(c_in=self.nfeats, h_dim=self.hidden_dim, latent_dim=self.latent_dim, n_frames=self.cond_frames, n_joints=self.njoints)
                 print('EMBED MOTION')
 
         self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints,
@@ -186,11 +196,11 @@ class MDM(nn.Module):
                 emb += self.mask_cond(action_emb, force_mask=force_mask)
 
         # !Luca: This could be a possible solution to the problem
-        # if 'motion' in self.cond_mode:
-        #     motion_emb = self.embed_motion(y['motion_condition'])
-        #     emd += motion_emb
-        #     # *Luca: this is the original code, force_mask is False) by default if not unconditioned
-            # emb += self.mask_cond(motion_emb, force_mask=force_mask)
+        if 'motion' in self.cond_mode:
+            motion_emb = self.embed_motion(y['motion_condition'])
+            emb += motion_emb
+            # *Luca: this is the original code, force_mask is False) by default if not unconditioned
+            emb += self.mask_cond(motion_emb, force_mask=False) # Commento di Luca sopra
 
         if self.arch == 'gru':
             x_reshaped = x.reshape(bs, njoints*nfeats, 1, nframes)

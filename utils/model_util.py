@@ -35,11 +35,22 @@ def get_model_args(args, data):
         cond_mode = 'text'
     else:
         cond_mode = 'action'
+        enc_type = args.enc_type
+        
     if hasattr(data.dataset, 'num_actions'):
         num_actions = data.dataset.num_actions
     else:
         num_actions = 1
-
+    
+    enc_type = None
+    cond_frames = None
+    hidden_dim = None
+    if args.condition == 'motion':
+        cond_mode = args.condition
+        enc_type = args.enc_type
+        cond_frames = args.cond_frames
+        hidden_dim = args.hidden_dim
+        
     # SMPL defaults
     data_rep = 'rot6d'
     njoints = 25
@@ -74,7 +85,8 @@ def get_model_args(args, data):
                   'latent_dim': args.latent_dim, 'ff_size': ff_size, 'num_layers': args.layers, 'num_heads': num_heads,
                   'dropout': dropout, 'activation': activation, 'data_rep': data_rep, 'cond_mode': cond_mode,
                   'cond_mask_prob': args.cond_mask_prob, 'action_emb': action_emb, 'arch': args.arch,
-                  'emb_trans_dec': args.emb_trans_dec, 'clip_version': clip_version, 'dataset': args.dataset}
+                  'emb_trans_dec': args.emb_trans_dec, 'clip_version': clip_version, 'dataset': args.dataset,
+                  'enc_type': enc_type, 'cond_frames': cond_frames, 'hidden_dim': hidden_dim}
     if args.dataset == "h36m":
         return model_args
     else:
