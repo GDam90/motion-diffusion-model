@@ -55,7 +55,7 @@ class WandbPlatform(TrainPlatform):
         self.group = "guido_exp"
         self.entity = "pinlab-sapienza"
         self.name = name
-        wb.init(
+        self.run = wb.init(
             project=self.project_name,
             entity=self.entity,
             group=self.group,
@@ -72,6 +72,9 @@ class WandbPlatform(TrainPlatform):
 
     def report_args(self, args, name):
         wb.config.update(args)
+    
+    def get_run_id(self):
+        return self.run.id
 
 class NoPlatform(TrainPlatform):
     def __init__(self, save_dir):

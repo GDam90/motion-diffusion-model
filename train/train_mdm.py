@@ -7,6 +7,7 @@ sys.path.append('/media/hdd/guide/motion-diffusion-model')
 
 import os
 import json
+from argparse import Namespace
 from utils.fixseed import fixseed
 from utils.parser_util import train_args
 from utils import dist_util
@@ -19,8 +20,23 @@ def main():
     args = train_args()
     fixseed(args.seed)
     train_platform_type = eval(args.train_platform_type)
-    train_platform = train_platform_type(args.save_dir)
-    train_platform.report_args(args, name='Args')
+    if args.resume_checkpoint != '':
+        assert os.path.exists(args.save_dir), f"{args.save_dir} path does not exists"
+        ckpt_name = args.resume_checkpoint.split("/")[-1]
+        assert os.path.exists(args.resume_checkpoint), f"no checkpoint named {ckpt_name} in {args.save_dir}"
+        cfg_path = os.path.join(args.save_dir, "args.json")
+        with open(cfg_path, 'r') as f:
+            old_args = json.load(f)
+        args = Namespace(**old_args)
+        if args.train_platform_type == "WandbPlatform":
+            train_platform = train_platform_type(args.save_dir, resume="must", id=args.wandb_id)
+        else:
+            train_platform = train_platform_type(args.save_dir)
+    else:
+        train_platform = train_platform_type(args.save_dir)
+        if args.train_platform_type == "WandbPlatform":
+            args.wandb_id = train_platform.get_run_id() # For resuming
+        train_platform.report_args(args, name='Args')
 
     if args.save_dir is None:
         raise FileNotFoundError('save_dir was not specified.')
