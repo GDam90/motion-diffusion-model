@@ -46,7 +46,10 @@ class TensorboardPlatform(TrainPlatform):
         self.writer.close()
 
 class WandbPlatform(TrainPlatform):
-    def __init__(self, save_dir):
+    def __init__(self, save_dir, resume=None, id=None):
+        
+        self.resume = resume
+        
         name = os.path.split(save_dir)[-1]
         self.project_name = "motion_diffusion"
         self.group = "guido_exp"
@@ -57,8 +60,9 @@ class WandbPlatform(TrainPlatform):
             entity=self.entity,
             group=self.group,
             name=self.name,
-            # config=self
-        )
+            resume=resume,
+            id=id
+            )
         
     def report_scalar(self, name, value, iteration, group_name=None):
         wb.log({f'{group_name}/{name}' : value}, step=iteration)
