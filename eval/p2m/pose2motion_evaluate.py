@@ -93,24 +93,19 @@ class MPJPEEvaluator:
                 gen_motion = gen_motion.to(self.device)
                 batch_dim = gt_motion.shape[0]
                 assert batch_dim == self.batch_size
-
-                # sequences_gt_3d = sequences_gt.reshape(-1, args.model_config.output_n, 22, 3)
-                # sequences_predict_3d = sequences_predict.reshape(-1, args.model_config.output_n, 22, 3)
                                         
                 errors_per_action_at_frame = torch.sum(torch.mean(torch.norm(gt_motion[:, self.testing_frames] - gen_motion[:, self.testing_frames], dim=3), dim=2), dim=0)
                 error_mean_all_actions += errors_per_action_at_frame
                 errors_per_action_at_frame /= self.batch_size
-                # MPJPE_errs.update({action: errors_per_action_at_frame})
                 for c in range(len(self.testing_frames)):
-                    MPJPE_errs[action].update({str(self.testing_frames[c]) : str(errors_per_action_at_frame[c])})
+                    MPJPE_errs[action].update({str(self.testing_frames[c]) : str(errors_per_action_at_frame[c].item())})
                     print(f"MPJPE/{action}/{self.testing_frames[c]} : {errors_per_action_at_frame[c]}")
             
         assert len(MPJPE_errs) == len(self.actions)
         error_mean_all_actions /= self.num_classes * self.batch_size
-        # MPJPE_errs.update({"mean" : error_mean_all_actions})
         MPJPE_errs.update({"mean" : {}})
         for c in range(len(self.testing_frames)):
-            MPJPE_errs["mean"].update({str(self.testing_frames[c]) : str(error_mean_all_actions[c])})
+            MPJPE_errs["mean"].update({str(self.testing_frames[c]) : str(error_mean_all_actions[c].item())})
             print(f"MPJPE/MEAN/{self.testing_frames[c]} : {error_mean_all_actions[c]}")
 
         return MPJPE_errs

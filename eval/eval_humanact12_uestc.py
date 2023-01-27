@@ -6,10 +6,12 @@ numpy array. This can be used to produce samples for FID evaluation.
 import sys
 sys.path.append("/media/hdd/guide/motion-diffusion-model")
 
+import json
 import os
 import torch
 import re
 
+from argparse import Namespace
 from utils import dist_util
 from model.cfg_sampler import ClassifierFreeSampleModel
 from data_loaders.get_data import get_dataset_loader, get_h36m_test_sets
@@ -55,10 +57,28 @@ def evaluate(args, model, diffusion, data):
     return eval_results
 
 
+def update_dict(dict_toupdate, old_dict):
+    keys = ["enc_type", "cond_frames","hidden_dim", "condition", "n_frames"]
+    for key in keys:
+        dict_toupdate[key] = old_dict[key]
+    return dict_toupdate
+
+
 def main():
     args = evaluation_parser()
+    
+    ###
+    args_dict = args.__dict__
+    ckpt_dir, name = os.path.split(args.model_path)
+    cfg_path = os.path.join(ckpt_dir, "args.json")
+    with open(cfg_path, 'r') as f:
+        old_args = json.load(f)
+    args_dict = update_dict(args_dict, old_args)
+    
     fixseed(args.seed)
     dist_util.setup_dist(args.device)
+    
+    args = Namespace(**args_dict)
 
     print(f'Eval mode [{args.eval_mode}]')
     assert args.eval_mode in ['debug', 'full'], f'eval_mode {args.eval_mode} is not supported for dataset {args.dataset}'

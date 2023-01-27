@@ -197,6 +197,7 @@ class MDM(nn.Module):
 
         # !Luca: This could be a possible solution to the problem
         if 'motion' in self.cond_mode:
+            y['motion_condition'] = y['motion_condition'].to(x.device)
             motion_emb = self.embed_motion(y['motion_condition'])
             emb += motion_emb
             # *Luca: this is the original code, force_mask is False) by default if not unconditioned
