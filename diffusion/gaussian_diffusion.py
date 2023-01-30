@@ -20,6 +20,9 @@ from diffusion.nn import mean_flat, sum_flat
 from diffusion.losses import normal_kl, discretized_gaussian_log_likelihood
 from data_loaders.humanml.scripts import motion_process
 
+from scipy.fftpack import idct
+from scipy.linalg import pinv
+import torch as pt
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps, scale_betas=1.):
     """
     Get a pre-defined beta schedule for the given name.
@@ -1375,10 +1378,28 @@ class GaussianDiffusion:
                                                   model_output_vel[:, :-1, :, :],
                                                   mask[:, :, :, 1:])  # mean_flat((target_vel - model_output_vel) ** 2)
 
+            if self.lambda_smooth > 0.:
+                '''
+                This loss enforces the output of the model to be similar to 
+                its DCI-IDCT transformation in a way that you get a smoother
+                motion (getting rid of the highest frequences). It has been readapted from
+                https://github.com/magnux/MotionGAN/blob/24b6fae02dda839411e15fef2bc2be4ff712b76f/models/motiongan.py#L202
+                '''
+                BS, JOINTS, CHANNELS, seq_len = model_output.shape
+                Q = idct(np.eye(seq_len))[:smoothing_basis, :] # Has to be fixed, maybe with an arg in the parser
+                Q_inv = pinv(Q)
+                Qs = pt.tensor(np.matmul(Q_inv, Q), dtype=pt.float32)
+                gen_seq_s = model_output.permute(0, 1, 3, 2)
+                gen_seq_s = pt.matmul(gen_seq_s, Qs)
+                gen_seq_s = gen_seq_s.permute(0, 1, 3, 2)
+                loss_smooth = pt.sum(pt.mean(pt.pow(gen_seq_s - model_output, 2), dim=-1), dim=(1, 2))
+                terms['smooth_mse'] = self.lambda_smooth * pt.mean(loss_smooth)
+            
             terms["loss"] = terms["rot_mse"] + terms.get('vb', 0.) +\
                             (self.lambda_vel * terms.get('vel_mse', 0.)) +\
                             (self.lambda_rcxyz * terms.get('rcxyz_mse', 0.)) + \
-                            (self.lambda_fc * terms.get('fc', 0.))
+                            (self.lambda_fc * terms.get('fc', 0.)) + \
+                            (self.lambda_smooth * terms.get('smooth_mse', 0.))
 
         else:
             raise NotImplementedError(self.loss_type)
