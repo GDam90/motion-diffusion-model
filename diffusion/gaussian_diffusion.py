@@ -1316,7 +1316,10 @@ class GaussianDiffusion:
             target_xyz, model_output_xyz = None, None
 
             if self.lambda_rcxyz > 0.:
-                target_xyz = get_xyz(target)  # [bs, nvertices(vertices)/njoints(smpl), 3, nframes]
+                '''
+                Loss defined as MSE for xyx, for h36M it's already calculated in line 1314
+                '''
+                target_xyz = get_xyz(target)  # [bs, nvertices(vertices)/njoints(smpl), 3, nframes] # check if == target
                 model_output_xyz = get_xyz(model_output)  # [bs, nvertices, 3, nframes]
                 terms["rcxyz_mse"] = self.masked_l2(target_xyz, model_output_xyz, mask)  # mean_flat((target_xyz - model_output_xyz) ** 2)
 
@@ -1325,6 +1328,11 @@ class GaussianDiffusion:
                 if self.data_rep == 'rot6d' and dataset.dataname in ['humanact12', 'uestc']:
                     target_xyz = get_xyz(target) if target_xyz is None else target_xyz
                     model_output_xyz = get_xyz(model_output) if model_output_xyz is None else model_output_xyz
+                    target_xyz_vel = (target_xyz[:, :, :, 1:] - target_xyz[:, :, :, :-1])
+                    model_output_xyz_vel = (model_output_xyz[:, :, :, 1:] - model_output_xyz[:, :, :, :-1])
+                    terms["vel_xyz_mse"] = self.masked_l2(target_xyz_vel, model_output_xyz_vel, mask[:, :, :, 1:])
+                
+                elif dataset.dataname == 'h36m': # Added
                     target_xyz_vel = (target_xyz[:, :, :, 1:] - target_xyz[:, :, :, :-1])
                     model_output_xyz_vel = (model_output_xyz[:, :, :, 1:] - model_output_xyz[:, :, :, :-1])
                     terms["vel_xyz_mse"] = self.masked_l2(target_xyz_vel, model_output_xyz_vel, mask[:, :, :, 1:])
@@ -1346,6 +1354,20 @@ class GaussianDiffusion:
                     terms["fc"] = self.masked_l2(pred_vel,
                                                  torch.zeros(pred_vel.shape, device=pred_vel.device),
                                                  mask[:, :, :, 1:])
+                if dataset.dataname == 'h36m': # Should be tested
+                    # 1 : R_foot, 2 : R_footToe, 3:(R_)site, 5 : L_foot, 6 : L_footToe, 7 : (L_)site
+                    r_ankle_idx, r_foot_idx, r_toe, l_ankle_idx, l_foot_idx, l_toe = 1, 2, 3, 5, 6, 7
+                    relevant_joints = [r_ankle_idx, r_foot_idx, r_toe, l_ankle_idx, l_foot_idx, l_toe]
+                    gt_joint_xyz = target_xyz[:, relevant_joints, :, :]  # [BatchSize, 6, 3, Frames]
+                    gt_joint_vel = torch.linalg.norm(gt_joint_xyz[:, :, :, 1:] - gt_joint_xyz[:, :, :, :-1], axis=2)  # [BatchSize, 4, Frames]
+                    fc_mask = torch.unsqueeze((gt_joint_vel <= 0.01), dim=2).repeat(1, 1, 3, 1)
+                    pred_joint_xyz = model_output_xyz[:, relevant_joints, :, :]
+                    pred_vel = pred_joint_xyz[:, :, :, 1:] - pred_joint_xyz[:, :, :, :-1]
+                    pred_vel[~fc_mask] = 0
+                    terms["fc"] = self.masked_l2(pred_vel,
+                                                 torch.zeros(pred_vel.shape, device=pred_vel.device),
+                                                 mask[:, :, :, 1:])
+                    
             if self.lambda_vel > 0.:
                 target_vel = (target[..., 1:] - target[..., :-1])
                 model_output_vel = (model_output[..., 1:] - model_output[..., :-1])
