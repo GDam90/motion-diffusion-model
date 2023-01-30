@@ -15,7 +15,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 
 class MPJPEEvaluator:
-    def __init__ (self, dataname, parameters, device, seed=None):
+    def __init__ (self, dataname, parameters, device, seed=None, modelname='00000'):
         
         assert dataname in ['h36m'], 'only defined for h36m dataset'
         self.path, _ = os.path.split(parameters["model_path"])
@@ -26,6 +26,7 @@ class MPJPEEvaluator:
         self.njoints = parameters["njoint"]
         self.layout = parameters["pose_rep"]
         self.h36m_standard_joints = 32
+        self.modelname = modelname
         self.dataname = dataname
         self.device = device
         self.testing_frames = [1, 3, 7, 9, 13, 17, 21, 24]
@@ -239,7 +240,7 @@ class MPJPEEvaluator:
         return
     
     def save_animation(self, figure, funcupdate, nframes, fargs, action, idx):
-        viz_path = os.path.join(self.path, "viz", action)
+        viz_path = os.path.join(self.path, "viz_" + self.modelname, action)
         os.makedirs(viz_path, exist_ok=True)
         line_anim = animation.FuncAnimation(figure, funcupdate, nframes, fargs=fargs, interval=70, blit=False)
         line_anim.save(os.path.join(viz_path, f'animation_{idx}.gif'),  fps=25, writer='pillow')
@@ -255,14 +256,15 @@ def evaluate_copy_from_stgcneval(args, model, diffusion, data):
     args.nfeats = 3
     args.njoint = 22
     device = dist_util.dev()
+    modelname = (args.model_path).split('/')[-1].split('.')[0][5:]
 
 
     recogparameters = args.__dict__.copy()
     recogparameters["pose_rep"] = "xyz"
     recogparameters["nfeats"] = 3
     
-    mpjpevaluation = MPJPEEvaluator(args.dataset, recogparameters, device) # TODO
-    mpjpe_metrics = {} # TODO
+    mpjpevaluation = MPJPEEvaluator(args.dataset, recogparameters, device, modelname=modelname)
+    mpjpe_metrics = {}
     
     # Instead of data_types, h36m'll test on different actions
     # data_types = ['train', 'test']
