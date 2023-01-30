@@ -52,8 +52,19 @@ class WandbPlatform(TrainPlatform):
         
         name = os.path.split(save_dir)[-1]
         self.project_name = "motion_diffusion"
-        self.group = "guido_exp"
         self.entity = "pinlab-sapienza"
+        if "guide" in os.path.realpath(save_dir):
+            group = "guido_exp"
+        elif "edo" in os.path.realpath(save_dir):
+            group = "edo_exp"
+        elif "luca_s" in os.path.realpath(save_dir):
+            group = "luca_exp"
+        elif "ram" in os.path.realpath(save_dir):
+            group = "ram_exp"
+        else:
+            print("no folder with this name")
+            raise SystemExit("no folder with this name, exiting...")
+        self.group = group
         self.name = name
         self.run = wb.init(
             project=self.project_name,
@@ -66,7 +77,7 @@ class WandbPlatform(TrainPlatform):
         
     def report_scalar(self, name, value, iteration, group_name=None):
         wb.log({f'{group_name}/{name}' : value}, step=iteration)
-    
+
     def close(self):
         wb.finish()
 
