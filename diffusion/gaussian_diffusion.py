@@ -140,6 +140,8 @@ class GaussianDiffusion:
         lambda_root_vel=0.,
         lambda_vel_rcxyz=0.,
         lambda_fc=0.,
+        lambda_smooth=0.,
+        DCT_coeffs=40,
     ):
         self.model_mean_type = model_mean_type
         self.model_var_type = model_var_type
@@ -158,6 +160,10 @@ class GaussianDiffusion:
         self.lambda_root_vel = lambda_root_vel
         self.lambda_vel_rcxyz = lambda_vel_rcxyz
         self.lambda_fc = lambda_fc
+        self.lambda_smooth = lambda_smooth
+        if self.lambda_smooth > 0:
+            assert DCT_coeffs > 0, "too few coeffs for DCT"
+            self.DCT_coeffs = DCT_coeffs
 
         if self.lambda_rcxyz > 0. or self.lambda_vel > 0. or self.lambda_root_vel > 0. or \
                 self.lambda_vel_rcxyz > 0. or self.lambda_fc > 0.:
@@ -1384,9 +1390,10 @@ class GaussianDiffusion:
                 its DCI-IDCT transformation in a way that you get a smoother
                 motion (getting rid of the highest frequences). It has been readapted from
                 https://github.com/magnux/MotionGAN/blob/24b6fae02dda839411e15fef2bc2be4ff712b76f/models/motiongan.py#L202
+                with chatGPT.
                 '''
                 BS, JOINTS, CHANNELS, seq_len = model_output.shape
-                Q = idct(np.eye(seq_len))[:smoothing_basis, :] # Has to be fixed, maybe with an arg in the parser
+                Q = idct(np.eye(seq_len))[:self.DCT_coeffs, :]
                 Q_inv = pinv(Q)
                 Qs = pt.tensor(np.matmul(Q_inv, Q), dtype=pt.float32)
                 gen_seq_s = model_output.permute(0, 1, 3, 2)
