@@ -1287,7 +1287,7 @@ class GaussianDiffusion:
                 terms["loss"] *= self.num_timesteps
         
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            model_output, motion_decoded = model(x_t, self._scale_timesteps(t), **model_kwargs) # [FIRST APPLICATION OF (WRAPPED) MODEL] # [64, 25, 6, 60]
+            model_output = model(x_t, self._scale_timesteps(t), **model_kwargs) # [FIRST APPLICATION OF (WRAPPED) MODEL] # [64, 25, 6, 60]
 
             # *Luca: This if gets ignored by default
             if self.model_var_type in [
@@ -1327,12 +1327,20 @@ class GaussianDiffusion:
             terms["rot_mse"] = self.masked_l2(target, model_output, mask) # mean_flat(rot_mse) # [FOR LOSS IN 6D ANGLES, WHEN get_xyz IS APPLIED WE CALCULATE LOSS ON POSITIONS]
 
             # !Luca: added
-            # Create a tensot with all TRUE values
-            mask_decoder = th.ones_like(model_kwargs['y']['motion_condition'], dtype=th.bool)
-            terms["reconstruction_loss"] = mpjpe_error(model_kwargs['y']['motion_condition'], motion_decoded) # mean_flat(rot_mse) # [FOR LOSS IN 6D ANGLES, WHEN get_xyz IS APPLIED WE CALCULATE LOSS ON POSITIONS]
+            # Create a tensot with all TRUE values # NON HO CAPITO
+            # mask_decoder = th.ones_like(model_kwargs['y']['motion_condition'], dtype=th.bool)
+            # terms["reconstruction_loss"] = mpjpe_error(model_kwargs['y']['motion_condition'], motion_decoded) # mean_flat(rot_mse) # [FOR LOSS IN 6D ANGLES, WHEN get_xyz IS APPLIED WE CALCULATE LOSS ON POSITIONS]
             
             target_xyz, model_output_xyz = None, None
+            if dataset.dataname == 'h36m':
+                target_xyz = get_xyz(target)  # [bs, nvertices(vertices)/njoints(smpl), 3, nframes] # check if == target
+                model_output_xyz = get_xyz(model_output)
 
+            if self.lambda_reco > 0.:
+                motion_cond = model_kwargs['y']['motion_condition'].clone()
+                reco_motion = model.model.decode_motion(model.model.embed_motion(motion_cond), motion_cond.shape)
+                terms["reconstruction_loss"] = mpjpe_error(motion_cond, reco_motion)
+            
             if self.lambda_rcxyz > 0.:
                 '''
                 Loss defined as MSE for xyx, for h36M it's already calculated in line 1314
@@ -1405,7 +1413,7 @@ class GaussianDiffusion:
                 Q = idct(np.eye(seq_len))[:self.DCT_coeffs, :]
                 Q_inv = pinv(Q)
                 Qs = pt.tensor(np.matmul(Q_inv, Q), dtype=pt.float32).to(model_output.device)
-                gen_seq_s = model_output.clone() # .permute(0, 1, 3, 2)
+                gen_seq_s = model_output.clone() # .permute(0, 1, 3, 2) [B, J, C, T]
                 gen_seq_s = pt.matmul(gen_seq_s, Qs)
                 # gen_seq_s = gen_seq_s.permute(0, 1, 3, 2)
                 loss_smooth = pt.sum(pt.mean(pt.pow(gen_seq_s - model_output, 2), dim=-1), dim=(1, 2))

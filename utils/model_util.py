@@ -50,6 +50,7 @@ def get_model_args(args, data):
         enc_type = args.enc_type
         cond_frames = args.cond_frames
         hidden_dim = args.hidden_dim
+        reco = True if args.lambda_reco > 0. else False
         
     # SMPL defaults
     data_rep = 'rot6d'
@@ -86,7 +87,7 @@ def get_model_args(args, data):
                   'dropout': dropout, 'activation': activation, 'data_rep': data_rep, 'cond_mode': cond_mode,
                   'cond_mask_prob': args.cond_mask_prob, 'action_emb': action_emb, 'arch': args.arch,
                   'emb_trans_dec': args.emb_trans_dec, 'clip_version': clip_version, 'dataset': args.dataset,
-                  'enc_type': enc_type, 'cond_frames': cond_frames, 'hidden_dim': hidden_dim}
+                  'enc_type': enc_type, 'cond_frames': cond_frames, 'hidden_dim': hidden_dim, 'reco': reco}
     if args.dataset == "h36m":
         return model_args
     else:
