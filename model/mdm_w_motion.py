@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/media/hdd/guide/motion-diffusion-model')
+sys.path.append('/media/hdd/luca_s/code/DDPMotion/motion-diffusion-model/model/')
 
 import numpy as np
 import torch
@@ -115,7 +115,10 @@ class MDM(nn.Module):
                     self.embed_motion = MLP_encoder(self.njoints * self.nfeats * self.cond_frames , self.latent_dim)
                 elif self.enc_type == 'sts':
                     from external_models.motion_encoders.stsgcn import STS_Encoder
+                    from external_models.motion_decoders.stsgcn import STS_Decoder 
                     self.embed_motion = STS_Encoder(c_in=self.nfeats, h_dim=self.hidden_dim, latent_dim=self.latent_dim, n_frames=self.cond_frames, n_joints=self.njoints)
+                    # !Luca: added the decoder to try out the upervision loss
+                    self.decode_motion = STS_Decoder(c_in=self.nfeats, h_dim=self.hidden_dim, latent_dim=self.latent_dim, n_frames=self.cond_frames, n_joints=self.njoints)
                 print('EMBED MOTION')
 
         self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints,
@@ -199,6 +202,8 @@ class MDM(nn.Module):
         if 'motion' in self.cond_mode:
             y['motion_condition'] = y['motion_condition'].to(x.device)
             motion_emb = self.embed_motion(y['motion_condition'])
+            # !Luca: decoder
+            motion_decode = self.decode_motion(motion_emb,y['motion_condition'].shape)
             emb += motion_emb
             # *Luca: this is the original code, force_mask is False) by default if not unconditioned
             emb += self.mask_cond(motion_emb, force_mask=False) # Commento di Luca sopra
@@ -235,7 +240,7 @@ class MDM(nn.Module):
             output, _ = self.gru(xseq)
 
         output = self.output_process(output)  # [bs, njoints, nfeats, nframes]
-        return output
+        return output, motion_decode
 
 
     def _apply(self, fn):

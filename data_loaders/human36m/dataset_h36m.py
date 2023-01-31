@@ -193,26 +193,6 @@ class H36M_Dataset(Dataset):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class H36M_Dataset_test(Dataset):
 
     def __init__(self, split, num_frames, skip_rate=1, actions=None, data_dir='/media/hdd/guide/motion-diffusion-model/dataset/Human36Millions'):
