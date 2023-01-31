@@ -23,6 +23,8 @@ from data_loaders.humanml.scripts import motion_process
 from scipy.fftpack import idct
 from scipy.linalg import pinv
 import torch as pt
+from utils.reconstruction_loss import mpjpe_error
+
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps, scale_betas=1.):
     """
     Get a pre-defined beta schedule for the given name.
@@ -142,6 +144,7 @@ class GaussianDiffusion:
         lambda_fc=0.,
         lambda_smooth=0.,
         DCT_coeffs=40,
+        recontruction_loss=0.
     ):
         self.model_mean_type = model_mean_type
         self.model_var_type = model_var_type
@@ -164,6 +167,9 @@ class GaussianDiffusion:
         if self.lambda_smooth > 0:
             assert DCT_coeffs > 0, "too few coeffs for DCT"
             self.DCT_coeffs = DCT_coeffs
+        
+        # !Luca:
+        self.recontruction_loss = 1
 
         if self.lambda_rcxyz > 0. or self.lambda_vel > 0. or self.lambda_root_vel > 0. or \
                 self.lambda_vel_rcxyz > 0. or self.lambda_fc > 0.:
@@ -1283,7 +1289,7 @@ class GaussianDiffusion:
                 terms["loss"] *= self.num_timesteps
         
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            model_output = model(x_t, self._scale_timesteps(t), **model_kwargs) # [FIRST APPLICATION OF (WRAPPED) MODEL] # [64, 25, 6, 60]
+            model_output, motion_decoded = model(x_t, self._scale_timesteps(t), **model_kwargs) # [FIRST APPLICATION OF (WRAPPED) MODEL] # [64, 25, 6, 60]
 
             # *Luca: This if gets ignored by default
             if self.model_var_type in [
@@ -1322,6 +1328,11 @@ class GaussianDiffusion:
             
             terms["rot_mse"] = self.masked_l2(target, model_output, mask) # mean_flat(rot_mse) # [FOR LOSS IN 6D ANGLES, WHEN get_xyz IS APPLIED WE CALCULATE LOSS ON POSITIONS]
 
+            # !Luca: added
+            # Create a tensot with all TRUE values
+            mask_decoder = th.ones_like(model_kwargs['y']['motion_condition'], dtype=th.bool)
+            terms["reconstruction_loss"] = mpjpe_error(model_kwargs['y']['motion_condition'], motion_decoded) # mean_flat(rot_mse) # [FOR LOSS IN 6D ANGLES, WHEN get_xyz IS APPLIED WE CALCULATE LOSS ON POSITIONS]
+            
             target_xyz, model_output_xyz = None, None
 
             if self.lambda_rcxyz > 0.:
@@ -1406,7 +1417,8 @@ class GaussianDiffusion:
                             (self.lambda_vel * terms.get('vel_mse', 0.)) +\
                             (self.lambda_rcxyz * terms.get('rcxyz_mse', 0.)) + \
                             (self.lambda_fc * terms.get('fc', 0.)) + \
-                            (self.lambda_smooth * terms.get('smooth_mse', 0.))
+                            (self.lambda_smooth * terms.get('smooth_mse', 0.))+ \
+                            (terms.get('reconstruction_loss', 0.))
 
         else:
             raise NotImplementedError(self.loss_type)

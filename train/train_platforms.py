@@ -52,6 +52,7 @@ class WandbPlatform(TrainPlatform):
         
         name = os.path.split(save_dir)[-1]
         self.project_name = "motion_diffusion"
+        self.group = "luca_exp"
         self.entity = "pinlab-sapienza"
         if "guide" in os.path.realpath(save_dir):
             group = "guido_exp"

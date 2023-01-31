@@ -5,16 +5,20 @@ Train a diffusion model on images.
 import sys
 sys.path.append('/media/hdd/luca_s/code/DDPMotion/motion-diffusion-model')
 
+from external_models.modules.stsae import STSAE
+
 import os
 import json
 from argparse import Namespace
 from utils.fixseed import fixseed
 from utils.parser_util import train_args
 from utils import dist_util
-from training_loop import TrainLoop
+from training_loop_ae import TrainLoop
 from data_loaders.get_data import get_dataset_loader
 from utils.model_util import create_model_and_diffusion
 from train.train_platforms import ClearmlPlatform, TensorboardPlatform, NoPlatform, WandbPlatform  # required for the eval operation
+
+from utils.model_util import get_model_args
 
 def main():
     args = train_args()
@@ -54,14 +58,19 @@ def main():
     data = get_dataset_loader(name=args.dataset, batch_size=args.batch_size, num_frames=args.num_frames)
 
     print("creating model and diffusion...")
-    model, diffusion = create_model_and_diffusion(args, data)
-    model.to(dist_util.dev())
-    model.rot2xyz.smpl_model.eval()
+    model = STSAE(c_in=3,
+                  h_dim=32, 
+                  latent_dim=512, 
+                  n_frames=30, 
+                  n_joints=22
+                ).cuda()
 
-    print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters_wo_clip()) / 1000000.0))
+    # Print number of parameters
+    print("Number of parameters: ", sum(p.numel() for p in model.parameters() if p.requires_grad))
     print("Training...")
-    TrainLoop(args, train_platform, model, diffusion, data).run_loop()
-    train_platform.close()
+    TrainLoop(args, train_platform, model, data).run_loop()
+    # train_platform.close()
+
 
 if __name__ == "__main__":
     main()
