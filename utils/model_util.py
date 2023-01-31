@@ -138,5 +138,6 @@ def create_gaussian_diffusion(args):
         data_rep=data_rep,
         lambda_vel_rcxyz=args.lambda_vel_rcxyz,
         DCT_coeffs = args.DCT_coeffs,
-        lambda_smooth=args.lambda_smooth
+        lambda_smooth=args.lambda_smooth,
+        lambda_reco = args.lambda_reco
     )

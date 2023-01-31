@@ -144,7 +144,7 @@ class GaussianDiffusion:
         lambda_fc=0.,
         lambda_smooth=0.,
         DCT_coeffs=40,
-        recontruction_loss=0.
+        lambda_reco=0.
     ):
         self.model_mean_type = model_mean_type
         self.model_var_type = model_var_type
@@ -167,9 +167,7 @@ class GaussianDiffusion:
         if self.lambda_smooth > 0:
             assert DCT_coeffs > 0, "too few coeffs for DCT"
             self.DCT_coeffs = DCT_coeffs
-        
-        # !Luca:
-        self.recontruction_loss = 1
+        self.lambda_reco = lambda_reco
 
         if self.lambda_rcxyz > 0. or self.lambda_vel > 0. or self.lambda_root_vel > 0. or \
                 self.lambda_vel_rcxyz > 0. or self.lambda_fc > 0.:
@@ -1406,10 +1404,10 @@ class GaussianDiffusion:
                 BS, JOINTS, CHANNELS, seq_len = model_output.shape
                 Q = idct(np.eye(seq_len))[:self.DCT_coeffs, :]
                 Q_inv = pinv(Q)
-                Qs = pt.tensor(np.matmul(Q_inv, Q), dtype=pt.float32)
-                gen_seq_s = model_output.permute(0, 1, 3, 2)
+                Qs = pt.tensor(np.matmul(Q_inv, Q), dtype=pt.float32).to(model_output.device)
+                gen_seq_s = model_output.clone() # .permute(0, 1, 3, 2)
                 gen_seq_s = pt.matmul(gen_seq_s, Qs)
-                gen_seq_s = gen_seq_s.permute(0, 1, 3, 2)
+                # gen_seq_s = gen_seq_s.permute(0, 1, 3, 2)
                 loss_smooth = pt.sum(pt.mean(pt.pow(gen_seq_s - model_output, 2), dim=-1), dim=(1, 2))
                 terms['smooth_mse'] = self.lambda_smooth * pt.mean(loss_smooth)
             

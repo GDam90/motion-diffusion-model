@@ -99,6 +99,7 @@ def add_model_options(parser):
                             "Currently tested on HumanAct12 only.")
     group.add_argument("--lambda_vel_rcxyz", default=0.0, type=float, help="Velocity loss in xyz representation.")
     group.add_argument("--lambda_smooth", default=0.0, type=float, help="Smoothing loss via DCT-IDCT simplification.")
+    group.add_argument("--lambda_reco", default=0.0, type=float, help="Reconstruction loss for the motion encoder module.")    
     group.add_argument("--DCT_coeffs", default=40, type=int, help="Number of DCT coefficients to use to smooth the motion. It's useful only if --lambda_smooth > 0.0 .")
 
 
