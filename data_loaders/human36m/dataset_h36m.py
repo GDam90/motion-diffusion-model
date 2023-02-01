@@ -27,7 +27,7 @@ class H36M_Dataset(Dataset):
             'val': 1,
             'test': 2
         }
-        assert num_frames == 60, "for debugging let's leave 60 frames with 30 and 30 for inp and out"
+        # assert num_frames == 60, "for debugging let's leave 60 frames with 30 and 30 for inp and out"
 
         # *Luca input_n is used only for test
         input_n = 30
@@ -168,7 +168,7 @@ class H36M_Dataset(Dataset):
 
         # !Luca: added a variable as motion_conditioning (could eventually become an argument)
         frames_to_condition = 30
-        fs = np.arange(start_frame, start_frame + self.in_n + self.out_n + frames_to_condition)
+        fs = np.arange(start_frame, start_frame + self.num_frames)
         
         
         motion = self.p3d[key][fs]
@@ -211,7 +211,7 @@ class H36M_Dataset_test(Dataset):
             'val': 1,
             'test': 2
         }
-        assert num_frames == 60, "for debugging let's leave 60 frames with 30 and 30 for inp and out"
+        # assert num_frames == 60, "for debugging let's leave 60 frames with 30 and 30 for inp and out"
 
         # *Luca input_n is used only for test
         input_n = 30
@@ -310,7 +310,7 @@ class H36M_Dataset_test(Dataset):
 
         # !Luca: added a variable as motion_conditioning (could eventually become an argument)
         frames_to_condition = 30
-        fs = np.arange(start_frame, start_frame + self.in_n + self.out_n + frames_to_condition)
+        fs = np.arange(start_frame, start_frame + self.num_frames)
         
         
         motion = self.p3d[key][fs]
@@ -336,7 +336,7 @@ class H36M_Dataset_test(Dataset):
 
         output['action'] = act_idx
         output['action_text'] = action
-        #print (self.p3d[key][fs].shape)
+        #print(self.p3d[key][fs].shape)
         return output
     
 
