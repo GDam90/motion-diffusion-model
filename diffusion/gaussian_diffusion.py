@@ -1424,7 +1424,7 @@ class GaussianDiffusion:
                             (self.lambda_rcxyz * terms.get('rcxyz_mse', 0.)) + \
                             (self.lambda_fc * terms.get('fc', 0.)) + \
                             (self.lambda_smooth * terms.get('smooth_mse', 0.))+ \
-                            (terms.get('reconstruction_loss', 0.))
+                            (self.lambda_reco * terms.get('reconstruction_loss', 0.))
 
         else:
             raise NotImplementedError(self.loss_type)
