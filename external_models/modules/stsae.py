@@ -7,7 +7,7 @@ import torch.nn as nn
 from external_models.motion_encoders.stsgcn import Encoder
 from external_models.motion_decoders.stsgcn import Decoder
 
-
+import pdb
 class STSAE(nn.Module):
     def __init__(self, c_in, h_dim=32, latent_dim=512, n_frames=30, n_joints=22) -> None:
         super(STSAE, self).__init__()
@@ -58,6 +58,7 @@ class STSAE(nn.Module):
         return z
         
     def forward(self, x):
+        pdb.set_trace()
         x = self.encode(x)
         x = self.decode(x)
         

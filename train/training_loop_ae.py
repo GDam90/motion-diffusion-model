@@ -143,9 +143,9 @@ class TrainLoop:
             if not (not self.lr_anneal_steps or self.step + self.resume_step < self.lr_anneal_steps):
                 break
         # Save the last checkpoint and evaluate every 10 epochs
-        if epoch % 10 == 0:
-            # save model
-            torch.save(self.save_dir, self.model.state_dict())
+            if epoch % 10 == 0:
+                # save model
+                torch.save(self.save_dir, self.model.state_dict())
             # *Luca: add evaluation here   
 
         
