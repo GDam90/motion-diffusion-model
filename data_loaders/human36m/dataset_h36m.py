@@ -239,7 +239,7 @@ class H36M_Dataset_test(Dataset):
         assert len(actions) == 1, 'These dataset is for one single action'
         acts = actions
         self.num_actions = len(self.all_acts)
-        subj = 5
+        subj = 5 if self.split_n == 2 else 11
         action_idx = self.all_acts.index(acts[0])
 
         key = 0
