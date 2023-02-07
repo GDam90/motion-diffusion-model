@@ -22,7 +22,7 @@ from diffusion.resample import create_named_schedule_sampler
 from data_loaders.humanml.networks.evaluator_wrapper import EvaluatorMDMWrapper
 from eval import eval_humanml, eval_humanact12_uestc
 from data_loaders.get_data import get_dataset_loader
-
+from eval.p2m.pose2motion_evaluate import evaluate_copy_from_stgcneval
 
 
 # For ImageNet experiments, this was a good default value.
@@ -152,7 +152,7 @@ class TrainLoop:
                         else:
                             self.train_platform.report_scalar(name=k, value=v, iteration=self.step, group_name='Loss')
                             
-                if self.step % self.save_interval == 0 and self.step != 0: # AVOID SAVE AND EVAL HERE
+                if self.step % self.save_interval == 0: # and self.step != 0: # AVOID SAVE AND EVAL HERE
                     self.save()
                     self.model.eval()
                     self.evaluate()
@@ -204,9 +204,19 @@ class TrainLoop:
                     self.train_platform.report_scalar(name=k, value=np.array(v).astype(float).mean(), iteration=self.step, group_name='Eval')
                 else:
                     self.train_platform.report_scalar(name=k, value=np.array(v).astype(float).mean(), iteration=self.step, group_name='Eval Unconstrained')
-
+        elif self.dataset == 'h36m':
+            print('Running evaluation loop: [Should take about xx min]')
+            eval_args = SimpleNamespace(num_seeds=self.args.eval_rep_times, num_samples=self.args.eval_num_samples,
+                                        batch_size=self.args.eval_batch_size, device=self.device, guidance_param = 1,
+                                        dataset=self.dataset, unconstrained=self.args.unconstrained, cond_mode=self.cond_mode,
+                                        model_path=os.path.join(self.save_dir, self.ckpt_file_name()), n_frames= self.args.n_frames)
+            eval_dict = evaluate_copy_from_stgcneval(eval_args, model=self.model, diffusion=self.diffusion, data=self.data.dataset, valid=True)
+            eval_dict = eval_dict[0]
+            for act in eval_dict.keys():
+                for timestep in eval_dict[act].keys():
+                    self.train_platform.report_scalar(timestep, eval_dict[act][timestep], iteration=None, group_name=act)
         end_eval = time.time()
-        print(f'Evaluation time: {round(end_eval-start_eval)/60}min')
+        print(f'Evaluation time: {round((end_eval-start_eval)/60, 2)} min')
 
 
     def run_step(self, batch, cond):

@@ -54,7 +54,7 @@ def get_dataset_loader(name, batch_size, num_frames, split='train', hml_mode='tr
 
     return loader
 
-def get_h36m_test_sets(num_frames, act=None, datasets=False):
+def get_h36m_test_sets(num_frames, act=None, datasets=False, valid=False):
     '''
     return a dict of datasets, indexed with action names.
     '''
@@ -66,8 +66,9 @@ def get_h36m_test_sets(num_frames, act=None, datasets=False):
                "greeting", "phoning", "posing", "purchases", "sitting",
                "sittingdown", "takingphoto", "waiting", "walkingdog",
                "walkingtogether"]
+    split = 'test' if not valid else 'val'
     if act in actions:
-        single_dataset = dataset(split='test', num_frames=num_frames, actions=[act])
+        single_dataset = dataset(split=split, num_frames=num_frames, actions=[act])
         if datasets:
             return {act: single_dataset}
         loader = DataLoader(
@@ -77,7 +78,7 @@ def get_h36m_test_sets(num_frames, act=None, datasets=False):
         
     
     for action in actions:
-        tmp_dataset = dataset(split='test', num_frames=num_frames, actions=[action])
+        tmp_dataset = dataset(split=split, num_frames=num_frames, actions=[action])
         if datasets:
             testloaders.update({action: tmp_dataset})
         else:

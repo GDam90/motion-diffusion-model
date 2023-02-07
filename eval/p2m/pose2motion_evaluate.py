@@ -250,7 +250,7 @@ class MPJPEEvaluator:
 def evaluate(args, model, diffusion, data):
     pass
 
-def evaluate_copy_from_stgcneval(args, model, diffusion, data):
+def evaluate_copy_from_stgcneval(args, model, diffusion, data, valid=False):
     bs = args.batch_size
     args.num_classes = data.num_actions
     args.nfeats = 3
@@ -268,11 +268,11 @@ def evaluate_copy_from_stgcneval(args, model, diffusion, data):
     
     # Instead of data_types, h36m'll test on different actions
     # data_types = ['train', 'test']
-    data_types = data.all_acts
+    data_types = mpjpevaluation.actions # data.all_acts
     
     # datasetGT now is a dictionary with keys in data_types (as before)
     # datasetGT = {'train': [data], 'test': [copy.deepcopy(data)]} 
-    datasetGT = get_h36m_test_sets(num_frames=60, datasets=True)
+    datasetGT = get_h36m_test_sets(num_frames=60, datasets=True, valid=valid)
     model.eval()
 
     allseeds = list(range(args.num_seeds))
