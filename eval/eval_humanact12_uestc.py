@@ -84,10 +84,10 @@ def main():
     assert args.eval_mode in ['debug', 'full'], f'eval_mode {args.eval_mode} is not supported for dataset {args.dataset}'
     if args.eval_mode == 'debug':
         args.num_samples = 10
-        args.num_seeds = 2
+        args.num_seeds = 1
     else:
         args.num_samples = 1000
-        args.num_seeds = 2
+        args.num_seeds = 1
 
     if args.dataset == 'h36m':
         data_loader = get_h36m_test_sets(num_frames=60, act='phoning')['phoning'] # It serves only as a prototype
