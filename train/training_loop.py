@@ -152,7 +152,7 @@ class TrainLoop:
                         else:
                             self.train_platform.report_scalar(name=k, value=v, iteration=self.step, group_name='Loss')
                             
-                if self.step % self.save_interval == 0: # and self.step != 0: # AVOID SAVE AND EVAL HERE
+                if self.step % self.save_interval == 0 and self.step != 0: # AVOID SAVE AND EVAL HERE
                     self.save()
                     self.model.eval()
                     self.evaluate()
