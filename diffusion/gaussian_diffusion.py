@@ -552,7 +552,7 @@ class GaussianDiffusion:
 
         nonzero_mask = (
             (t != 0).float().view(-1, *([1] * (len(x.shape) - 1)))
-        )  # no noise when t == 0
+        )  # no noise when t == 0 
         if cond_fn is not None:
             out["mean"] = self.condition_mean(
                 cond_fn, out, x, t, model_kwargs=model_kwargs
@@ -619,7 +619,7 @@ class GaussianDiffusion:
         clip_denoised=True,
         denoised_fn=None,
         cond_fn=None,
-        model_kwargs=None,
+        model_kwargs=None, # Cond vocabulary
         device=None,
         progress=False,
         skip_timesteps=0,
@@ -1359,7 +1359,10 @@ class GaussianDiffusion:
                     terms["vel_xyz_mse"] = self.masked_l2(target_xyz_vel, model_output_xyz_vel, mask[:, :, :, 1:])
                 
                 elif dataset.dataname == 'h36m': # Added
-                    target_xyz_vel = (target_xyz[:, :, :, 1:] - target_xyz[:, :, :, :-1])
+                    m = 0.2 # margin in millimiters, to avoid noisy values for still joints: similar to https://github.com/carloscaetano/skeleton-images
+                    target_xyz_vel = (target_xyz[:, :, :, 1:] - target_xyz[:, :, :, :-1]).to(torch.double)
+                    # to avoid noisy values for still joints:
+                    target_xyz_vel = torch.where(torch.norm(target_xyz_vel, p=2, dim=2, keepdim=True).repeat(1,1,3,1) > m, target_xyz_vel, 0.)
                     model_output_xyz_vel = (model_output_xyz[:, :, :, 1:] - model_output_xyz[:, :, :, :-1])
                     terms["vel_xyz_mse"] = self.masked_l2(target_xyz_vel, model_output_xyz_vel, mask[:, :, :, 1:])
 
@@ -1423,7 +1426,8 @@ class GaussianDiffusion:
                             (self.lambda_vel * terms.get('vel_mse', 0.)) +\
                             (self.lambda_rcxyz * terms.get('rcxyz_mse', 0.)) + \
                             (self.lambda_fc * terms.get('fc', 0.)) + \
-                            (self.lambda_smooth * terms.get('smooth_mse', 0.))+ \
+                            (self.lambda_smooth * terms.get('smooth_mse', 0.)) + \
+                            (self.lambda_vel_rcxyz * terms.get('vel_xyz_mse', 0.)) + \
                             (self.lambda_reco * terms.get('reconstruction_loss', 0.))
 
         else:
