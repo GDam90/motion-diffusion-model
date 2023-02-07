@@ -11,9 +11,9 @@ adapted from https://github.com/wei-mao-2019/HisRepItself/blob/master/utils/h36m
 
 class H36M_Dataset(Dataset):
     dataname = 'h36m'
-    def __init__(self, split, num_frames, skip_rate=1, actions=None, data_dir='/home/rameez/work/motion-diffusion-model/dataset/Human36Millions'):
+    def __init__(self, split, num_frames, skip_rate=1, actions=None, data_dir='/media/hdd/datasets_common/h36m'):
         """
-        :param path_to_data:
+        :param path_to_data: /home/rameez/work/motion-diffusion-model/dataset/Human36Millions
         :param actions:
         :param input_n:
         :param output_n:
