@@ -3,10 +3,10 @@
 Train a diffusion model on images.
 """
 import sys
-sys.path.append('/media/hdd/luca_s/code/DDPMotion/motion-diffusion-model')
+sys.path.append('/home/rameez/work/motion-diffusion-model')
 
 from external_models.modules.stsae import STSAE
-
+from external_models.modules.stsgcn_wvlt import Model
 import os
 import json
 from argparse import Namespace
@@ -58,13 +58,13 @@ def main():
     data = get_dataset_loader(name=args.dataset, batch_size=args.batch_size, num_frames=args.num_frames)
 
     print("creating model and diffusion...")
-    model = STSAE(c_in=3,
-                  h_dim=32, 
-                  latent_dim=512, 
-                  n_frames=30, 
-                  n_joints=22
-                ).cuda()
-
+    # model = STSAE(c_in=3,
+    #               h_dim=32, 
+    #               latent_dim=512, 
+    #               n_frames=30, 
+    #               n_joints=22
+    #             ).cuda()
+    model = Model(3,30, 0.1,4,[3, 3],0.0).cuda()
     # Print number of parameters
     print("Number of parameters: ", sum(p.numel() for p in model.parameters() if p.requires_grad))
     print("Training...")
